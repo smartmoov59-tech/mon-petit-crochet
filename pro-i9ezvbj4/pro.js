@@ -11,6 +11,8 @@
       ou si c'est un blob: créé ici par la page elle-même (voir safeSrc()). Aucune autre adresse venue des données n'est jamais utilisée.
    3. Le mot de passe ne part jamais sur le réseau et n'est gardé nulle part : seule la clé dérivée dans le navigateur est envoyée.
    4. Le jeton de session reste dans sessionStorage (jamais localStorage, jamais dans une adresse, jamais dans la console).
+   5. La page interdit les styles en ligne : une couleur de pastille se pose avec element.style.setProperty (voir paintSwatch()),
+      jamais avec setAttribute('style', …) ni avec une propriété « style » donnée à h().
    ========================================================================== */
 
 /* Anti-intégration : cette page ne doit jamais s'afficher dans un cadre d'un autre site. */
@@ -37,7 +39,15 @@ if (window.top !== window.self) { window.top.location = window.location; }
   var TEXT_KEY = /^[a-z0-9-]{1,40}\.[A-Za-z0-9-]{1,40}$/;
   var SHA_RE = /^[0-9a-f]{40}$/;
   var MAX_ARTICLES = 60, MAX_ARTICLE_PHOTOS = 8, MAX_LIST_PHOTOS = 40, MAX_UPLOADS = 40;
-  var MAX_JPEG = 1600000;                       /* octets : au-delà, la photo est réduite encore (le serveur refuse plus de 2,3 Mo de corps) */
+  var MAX_COLORS = 40, MAX_EVENTS = 8;          /* coloris ajoutés et dates de marché : les mêmes maximums que le serveur */
+  var TONES = [['chaud', 'Chaud'], ['froid', 'Froid'], ['neutre', 'Neutre']];
+  var HEX_RE = /^#[0-9A-Fa-f]{6}$/, COLOR_ID_RE = /^[a-z0-9-]{2,30}$/;
+  /* marchés d'origine de la fenêtre de l'accueil (espace-pro/CONTRAT-V2.md, §1.1) : montrés tant que « events » est absent des réglages */
+  var ORIGIN_EVENTS = [
+    { date: '2026-12-06', city: 'Cucuron', place: 'Au bord de l’étang', time: '' },
+    { date: '2026-12-19', city: 'Pertuis', place: 'Place Garcin', time: '' }
+  ];
+  var MAX_JPEG = 1600000;                      /* octets : au-delà, la photo est réduite encore (le serveur refuse plus de 2,3 Mo de corps) */
   var MAX_SOURCE = 400 * 1000 * 1000;           /* photo d'origine : 400 Mo au maximum (simple garde-fou : une photo d'iPhone, même en 48 millions de pixels ou en Apple ProRAW, reste très en dessous) */
   var MAX_PIXELS = 300 * 1000 * 1000;           /* 300 millions de pixels au maximum (un iPhone en fait 48 millions au plus) */
   /* Le sélecteur de photos propose tout ce qui ressemble à une image, y compris les photos d'iPhone (HEIC) : le format réel est reconnu d'après le contenu, jamais d'après le nom ou le type annoncé */
@@ -48,7 +58,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
   var CATS = [['sacs', 'Sacs'], ['paniers', 'Paniers'], ['cordons', 'Chaînes de téléphone'], ['autres', 'Autres']];
 
   var SECTIONS = {
-    header: 'En-tête', menu: 'Menu du téléphone', hero: 'Accueil', enstock: 'Bandeau « En stock » de l’accueil', stock: 'Page « En stock »', disponibles: 'Nouveautés de l’accueil', boutique: 'La boutique',
+    header: 'En-tête', menu: 'Menu du téléphone', hero: 'Accueil', enstock: 'Bandeau « En stock » de l’accueil', stock: 'Page « En stock »', noel: 'Fenêtre de Noël (texte ; les dates sont dans Livraison et contact)', boutique: 'La boutique',
     couleurs: 'La palette de couleurs', instagram: 'Instagram', modeles: 'Les modèles', atelier: 'L’atelier', numbers: 'Chiffres clés',
     accessoires: 'Détails décoratifs', 'sur-mesure': 'Demande personnalisée', galerie: 'Galerie', avis: 'Retours clientes',
     infos: 'Questions fréquentes', contact: 'Nous trouver', footer: 'Pied de page'
@@ -110,6 +120,24 @@ if (window.top !== window.self) { window.top.location = window.location; }
     if (isNaN(d.getTime())) { return 'Date inconnue'; }
     if (d.getFullYear() !== now.getFullYear()) { opt.year = 'numeric'; }
     return new Intl.DateTimeFormat('fr-FR', opt).format(d) + ' à ' + d.getHours() + NB + 'h' + NB + pad2(d.getMinutes());
+  }
+
+  /* « 2026-12-06 » est-il un vrai jour du calendrier ? (même contrôle que le serveur ; « 2026-02-30 » est refusé) */
+  function isRealDay(s) {
+    var m = typeof s === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s) ? s.split('-') : null, y, mo, d, t;
+    if (!m) { return false; }
+    y = Number(m[0]); mo = Number(m[1]); d = Number(m[2]);
+    t = new Date(Date.UTC(y, mo - 1, d));
+    return t.getUTCFullYear() === y && t.getUTCMonth() === mo - 1 && t.getUTCDate() === d;
+  }
+  /* aujourd'hui sur l'appareil, au format AAAA-MM-JJ */
+  function todayIso() { var n = new Date(); return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate()); }
+  /* « dimanche 6 décembre » (avec l'année quand ce n'est pas l'année en cours) ; iso doit être un vrai jour */
+  function fmtDay(iso) {
+    var p = iso.split('-'), d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])), opt = { weekday: 'long', day: 'numeric', month: 'long' }, s;
+    if (d.getFullYear() !== new Date().getFullYear()) { opt.year = 'numeric'; }
+    s = new Intl.DateTimeFormat('fr-FR', opt).format(d);
+    return d.getDate() === 1 ? s.replace(' 1 ', ' 1er ') : s;                 /* « dimanche 1er novembre » */
   }
 
   /* même nettoyage que le serveur (fonction text() de pro-worker.js) : retours à la ligne unifiés, caractères de contrôle retirés, bords rognés */
@@ -570,6 +598,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
       isNew: a.isNew === true, hidden: a.hidden === true, cat: CATS.some(function (c) { return c[0] === a.cat; }) ? a.cat : 'autres'
     };
     if (kind === 'dispo') { q = Math.floor(Number(a.qty)); out.qty = q >= 0 && q <= 99 ? q : 0; }
+    if (typeof a.ship === 'number' && isFinite(a.ship) && a.ship >= 0 && a.ship <= 50) { out.ship = Math.round(a.ship * 100) / 100; }   /* frais de livraison de cette pièce (0 = offerte) ; absent = frais par défaut */
     return out;
   }
   /* le fichier « photos » remis en forme : repères { src, alt }, listes de { src, caption } (une adresse invalide est gardée telle quelle : l'écran ne l'affiche jamais) */
@@ -594,7 +623,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     var f = isObj(raw) ? raw : {}, out = emptyFiles();
     if (isObj(f.settings)) { out.settings = clone(f.settings); }
     if (Array.isArray(f.articles)) { out.articles = f.articles.slice(0, MAX_ARTICLES).map(normalizeArticle).filter(Boolean); }
-    if (isObj(f.catalog)) { out.catalog = clone(f.catalog); }
+    if (isObj(f.catalog)) { out.catalog = clone(f.catalog); canonColors(out.catalog); }
     if (isObj(f.texts)) { Object.keys(f.texts).forEach(function (k) { if (TEXT_KEY.test(k) && typeof f.texts[k] === 'string') { out.texts[k] = f.texts[k]; } }); }
     if (isObj(f.photos)) { out.photos = cleanPhotos(f.photos); }
     return out;
@@ -640,6 +669,124 @@ if (window.top !== window.self) { window.top.location = window.location; }
     if (!Object.keys(c.products).length) { delete c.products; }
   }
 
+  /* ---------- frais de livraison : tarif par défaut et phrases d'aide ---------- */
+  function curShipFee() { var v = group('shipping').fee; return typeof v === 'number' ? v : originSettings().fee; }
+  function shipHint() { return 'Laissez vide pour appliquer le tarif par défaut (' + fmtPrice(curShipFee()) + '). 0 = livraison offerte pour cette pièce.'; }
+  function fmtShip(n) { return n === 0 ? 'Livraison offerte' : 'Livraison ' + fmtPrice(n); }
+
+  /* ---------- couleurs de fil : les coloris d'origine (js/data.js) + ceux qu'Oriana ajoute, change ou retire (catalog.colors) ----------
+     Le fichier ne garde que ce qui diffère de l'origine. Tout changement passe par mutateColors() : lecture sous une forme propre,
+     modification, puis réécriture « minimale » (rien d'identique à l'origine, ni tableau ni objet vide, ordre toujours le même). */
+  function baseColors() {
+    return (Array.isArray(window.MPC_COLORS) ? window.MPC_COLORS : []).filter(function (c) {
+      return isObj(c) && typeof c.id === 'string' && typeof c.name === 'string' && HEX_RE.test(String(c.hex));
+    });
+  }
+  /* ton d'un coloris d'origine : chaud ou froid d'après MPC_TONES (js/data.js), sinon neutre */
+  function baseTone(id) {
+    var T = isObj(window.MPC_TONES) ? window.MPC_TONES : {};
+    if (Array.isArray(T.chaud) && T.chaud.indexOf(id) >= 0) { return 'chaud'; }
+    return Array.isArray(T.froid) && T.froid.indexOf(id) >= 0 ? 'froid' : 'neutre';
+  }
+  function isTone(t) { return TONES.some(function (x) { return x[0] === t; }); }
+
+  /* catalog.colors sous une forme sûre : { added: [{ id, name, hex, tone }], edits: { id: { name?, hex?, tone? } }, hidden: [id] }
+     (mêmes règles que le serveur : ce qui est invalide est écarté) */
+  function readColors(catalog) {
+    var raw = isObj(catalog.colors) ? catalog.colors : {}, base = {}, seen = {}, out = { added: [], edits: {}, hidden: [] };
+    baseColors().forEach(function (c) { base[c.id] = true; });
+    (Array.isArray(raw.added) ? raw.added : []).forEach(function (x) {
+      var name;
+      if (!isObj(x) || out.added.length >= MAX_COLORS || typeof x.id !== 'string' || !COLOR_ID_RE.test(x.id) || hasOwn(base, x.id) || hasOwn(seen, x.id)) { return; }
+      name = cleanText(typeof x.name === 'string' ? x.name : '', false);
+      if (!name || name.length > 30 || !HEX_RE.test(String(x.hex)) || !isTone(x.tone)) { return; }
+      seen[x.id] = true;
+      out.added.push({ id: x.id, name: name, hex: x.hex.toUpperCase(), tone: x.tone });
+    });
+    if (isObj(raw.edits)) {
+      Object.keys(raw.edits).forEach(function (id) {
+        var e = raw.edits[id], r = {}, name;
+        if (!hasOwn(base, id) || !isObj(e)) { return; }
+        name = cleanText(typeof e.name === 'string' ? e.name : '', false);
+        if (name && name.length <= 30) { r.name = name; }
+        if (HEX_RE.test(String(e.hex))) { r.hex = e.hex.toUpperCase(); }
+        if (isTone(e.tone)) { r.tone = e.tone; }
+        if (Object.keys(r).length) { out.edits[id] = r; }
+      });
+    }
+    (Array.isArray(raw.hidden) ? raw.hidden : []).forEach(function (id) {
+      if (typeof id === 'string' && (hasOwn(base, id) || hasOwn(seen, id)) && out.hidden.indexOf(id) < 0) { out.hidden.push(id); }
+    });
+    return out;
+  }
+  /* range l'état dans catalog.colors : seulement ce qui diffère de l'origine ; l'objet « colors » disparaît s'il n'y a plus rien */
+  function writeColors(catalog, st) {
+    var base = {}, order = [], edits = {}, hidden, out = {};
+    baseColors().forEach(function (c) { base[c.id] = c; order.push(c.id); });
+    st.added.forEach(function (x) { order.push(x.id); });
+    order.forEach(function (id) {
+      var c = hasOwn(base, id) ? base[id] : null, e = c && hasOwn(st.edits, id) ? st.edits[id] : null, r = {};
+      if (!e) { return; }
+      if (e.name !== undefined && e.name !== c.name) { r.name = e.name; }
+      if (e.hex !== undefined && e.hex.toUpperCase() !== c.hex.toUpperCase()) { r.hex = e.hex.toUpperCase(); }
+      if (e.tone !== undefined && e.tone !== baseTone(id)) { r.tone = e.tone; }
+      if (Object.keys(r).length) { edits[id] = r; }
+    });
+    hidden = order.filter(function (id) { return st.hidden.indexOf(id) >= 0; });
+    if (st.added.length) { out.added = st.added.map(function (x) { return { id: x.id, name: x.name, hex: x.hex, tone: x.tone }; }); }
+    if (Object.keys(edits).length) { out.edits = edits; }
+    if (hidden.length) { out.hidden = hidden; }
+    if (Object.keys(out).length) { catalog.colors = out; } else { delete catalog.colors; }
+  }
+  function mutateColors(change) { var st = readColors(state.work.catalog); change(st); writeColors(state.work.catalog, st); }
+  function canonColors(catalog) { if (isObj(catalog)) { writeColors(catalog, readColors(catalog)); } }
+  /* tous les coloris tels qu'ils sont proposés : d'abord les 26 d'origine (ordre de data.js), puis les coloris ajoutés */
+  function colorEntries(catalog) {
+    var st = readColors(catalog), list = [];
+    baseColors().forEach(function (c) {
+      var e = hasOwn(st.edits, c.id) ? st.edits[c.id] : {}, origin = { name: c.name, hex: c.hex.toUpperCase(), tone: baseTone(c.id) }, x;
+      x = { id: c.id, base: true, origin: origin, name: e.name !== undefined ? e.name : origin.name, hex: e.hex !== undefined ? e.hex : origin.hex,
+        tone: e.tone !== undefined ? e.tone : origin.tone, hidden: st.hidden.indexOf(c.id) >= 0 };
+      x.edited = x.name !== origin.name || x.hex !== origin.hex || x.tone !== origin.tone;
+      list.push(x);
+    });
+    st.added.forEach(function (a) { list.push({ id: a.id, base: false, name: a.name, hex: a.hex, tone: a.tone, hidden: st.hidden.indexOf(a.id) >= 0, edited: false }); });
+    return list;
+  }
+
+  /* ---------- marchés et rendez-vous de la fenêtre de l'accueil (settings.events) ---------- */
+  function sortDays(items) {
+    return items.map(function (it, i) { return { it: it, i: i }; })
+      .sort(function (a, b) { return a.it.date < b.it.date ? -1 : (a.it.date > b.it.date ? 1 : a.i - b.i); })
+      .map(function (x) { return x.it; });
+  }
+  /* ce que montrera la fenêtre : { active, items } ; sans « events » dans les réglages, ce sont les marchés d'origine */
+  function eventsView(settings) {
+    var e = isObj(settings.events) ? settings.events : null, items = [];
+    if (e && Array.isArray(e.items)) {
+      e.items.forEach(function (it) {
+        var date, city;
+        if (!isObj(it) || items.length >= MAX_EVENTS) { return; }
+        date = typeof it.date === 'string' ? it.date.trim() : '';
+        city = cleanText(typeof it.city === 'string' ? it.city : '', false);
+        if (!isRealDay(date) || !city || city.length > 40) { return; }
+        items.push({ date: date, city: city, place: cleanText(typeof it.place === 'string' ? it.place : '', false).slice(0, 80), time: cleanText(typeof it.time === 'string' ? it.time : '', false).slice(0, 30) });
+      });
+      items = sortDays(items);
+    } else { items = clone(ORIGIN_EVENTS); }
+    return { active: !(e && e.active === false), items: items };
+  }
+  /* range les marchés dans les réglages (la copie de travail, ou « settings » si on en donne un autre) : rien du tout tant que tout est comme à l'origine,
+     sinon « events » avec ce qui diffère */
+  function writeEvents(active, items, settings) {
+    var s = settings || state.work.settings;
+    if (deepEqual(items, ORIGIN_EVENTS)) {
+      if (active) { delete s.events; } else { s.events = { active: false }; }
+    } else {
+      s.events = { active: active, items: items };
+    }
+  }
+
   /* ---------- combien de modifications non publiées ---------- */
   function countKeys(a, b) {
     var n = 0;
@@ -655,21 +802,41 @@ if (window.top !== window.self) { window.top.location = window.location; }
     orderB = b.filter(function (x) { return hasOwn(inA, x.id); }).map(function (x) { return x.id; }).join();
     return n + (orderA === orderB ? 0 : 1);
   }
-  /* à plat : contact.phone, shipping.fee… ; l'annonce et la pause comptent chacune pour une modification */
+  /* à plat : contact.phone, shipping.fee, shipping.sum… ; l'annonce et la pause comptent chacune pour une modification ; les marchés se comptent à part (countEvents) */
   function flatSettings(s) {
     var o = {};
     Object.keys(s).forEach(function (k) {
+      if (k === 'events') { return; }
       if (k === 'announcement' || k === 'ordersPaused' || !isObj(s[k])) { o[k] = s[k]; }
       else { Object.keys(s[k]).forEach(function (j) { o[k + '.' + j] = s[k][j]; }); }
     });
     return o;
   }
+  /* marchés : l'interrupteur compte pour une modification, puis chaque date ajoutée, retirée ou changée (on compare ce qui s'affichera, pas la forme du fichier) */
+  function countEvents(w, s) {
+    var a = eventsView(w), b = eventsView(s), left = {}, added = 0, removed = 0;
+    b.items.forEach(function (it) { var k = JSON.stringify(it); left[k] = (left[k] || 0) + 1; });
+    a.items.forEach(function (it) { var k = JSON.stringify(it); if (left[k]) { left[k] -= 1; } else { added += 1; } });
+    Object.keys(left).forEach(function (k) { removed += left[k]; });
+    return (a.active === b.active ? 0 : 1) + Math.max(added, removed);
+  }
+  /* boutique : une modification par pièce changée (prix, textes, frais de livraison) ... */
+  function productChanges(w, s) { return countKeys(isObj(w.products) ? w.products : {}, isObj(s.products) ? s.products : {}); }
+  /* ... et une par couleur changée, ajoutée, retirée de la vente ou supprimée (on compare les coloris tels qu'ils sont proposés) */
+  function colorChanges(w, s) {
+    function sigs(catalog) {
+      var m = {};
+      colorEntries(catalog).forEach(function (c) { m[c.id] = JSON.stringify([c.base, c.name, c.hex, c.tone, c.hidden]); });
+      return m;
+    }
+    return countKeys(sigs(w), sigs(s));
+  }
   function fileChanges(name) {
     var w = state.work[name], s = state.files[name];
     if (name === 'articles') { return countArticles(w, s); }
     if (name === 'texts') { return countKeys(w, s); }
-    if (name === 'catalog') { return countKeys(isObj(w.products) ? w.products : {}, isObj(s.products) ? s.products : {}); }
-    if (name === 'settings') { return countKeys(flatSettings(w), flatSettings(s)); }
+    if (name === 'catalog') { return productChanges(w, s) + colorChanges(w, s); }
+    if (name === 'settings') { return countKeys(flatSettings(w), flatSettings(s)) + countEvents(w, s); }
     return countKeys(isObj(w.slots) ? w.slots : {}, isObj(s.slots) ? s.slots : {}) + (deepEqual(w.gallery, s.gallery) ? 0 : 1) + (deepEqual(w.reviews, s.reviews) ? 0 : 1);
   }
   function countChanges() { return state.work ? FILES.reduce(function (n, f) { return n + fileChanges(f); }, 0) : 0; }
@@ -700,11 +867,35 @@ if (window.top !== window.self) { window.top.location = window.location; }
     order.forEach(function (id) { if (hasOwn(merged, id)) { out.push(merged[id]); } });
     return ids(theirs).filter(function (id) { return order.indexOf(id) < 0 && hasOwn(merged, id); }).map(function (id) { return merged[id]; }).concat(out);
   }
+  /* fusion à trois d'une liste vue comme un ensemble (key = clé d'un élément) : la liste du serveur, plus ce que j'ai ajouté, moins ce que j'ai retiré */
+  function mergeSet(base, mine, theirs, key) {
+    var inBase = Object.create(null), inMine = Object.create(null), seen = Object.create(null), out = [];
+    base.forEach(function (x) { inBase[key(x)] = true; });
+    mine.forEach(function (x) { inMine[key(x)] = true; });
+    theirs.forEach(function (x) {
+      var k = key(x);
+      if ((inBase[k] && !inMine[k]) || seen[k]) { return; }                  /* je l'avais retiré (ou doublon) */
+      seen[k] = true; out.push(x);
+    });
+    mine.forEach(function (x) {
+      var k = key(x);
+      if (!inBase[k] && !seen[k]) { seen[k] = true; out.push(x); }           /* je l'ai ajouté */
+    });
+    return out;
+  }
   function mergeWork(theirs) {
-    var out = {};
+    var out = {}, cb, cm, ct, st, vb, vm, vt;
     FILES.forEach(function (n) {
       out[n] = n === 'articles' ? mergeArticles(state.files[n], state.work[n], theirs[n]) : merge3(state.files[n], state.work[n], theirs[n]);
     });
+    /* trois listes se fusionnent mieux que « la mienne l'emporte » : coloris retirés de la vente, coloris ajoutés, dates de marché (ce que l'autre appareil a fait est gardé, et ce que j'ai fait aussi) */
+    cb = readColors(state.files.catalog); cm = readColors(state.work.catalog); ct = readColors(theirs.catalog);
+    st = readColors(out.catalog);
+    st.hidden = mergeSet(cb.hidden, cm.hidden, ct.hidden, String);
+    st.added = mergeArticles(cb.added, cm.added, ct.added).slice(0, MAX_COLORS);
+    writeColors(out.catalog, st);                      /* et les couleurs fusionnées reprennent leur forme « minimale » */
+    vb = eventsView(state.files.settings); vm = eventsView(state.work.settings); vt = eventsView(theirs.settings);
+    writeEvents(merge3(vb.active, vm.active, vt.active) !== false, sortDays(mergeSet(vb.items, vm.items, vt.items, JSON.stringify)).slice(0, MAX_EVENTS), out.settings);
     return out;
   }
 
@@ -775,14 +966,22 @@ if (window.top !== window.self) { window.top.location = window.location; }
   }
   var parseArticlePrice = moneyParser(0.5, 2000, { empty: 'Écrivez le prix, par exemple 45 ou 12,50.', range: 'Le prix doit être compris entre 0,50' + NB + '€ et 2' + NB + '000' + NB + '€.' });
   var parseShopPrice = moneyParser(0.5, 2000, { empty: 'Écrivez un prix, ou rétablissez l’original.', range: 'Le prix doit être compris entre 0,50' + NB + '€ et 2' + NB + '000' + NB + '€.' });
+  /* montant facultatif : champ vide = { value: undefined } (pas de montant) ; sinon mêmes règles que moneyParser */
+  function optionalMoney(min, max, msg) {
+    var parse = moneyParser(min, max, { empty: '', range: msg.range });
+    return function (raw) { return String(raw).trim() === '' ? { value: undefined } : parse(raw); };
+  }
+  /* frais de livraison d'une pièce : 0 (offerte) à 50 €, ou vide = tarif par défaut */
+  var parseShipFee = optionalMoney(0, 50, { range: 'Les frais doivent être compris entre 0 et 50' + NB + '€.' });
 
   /* Champ de saisie complet. Options :
        label ; hint (aide fixe) ; original (texte remis par « Rétablir l'original ») et originalLabel (texte de l'aide « À l'origine ») ;
        value (texte affiché) ; max (limite de caractères) ; counter (afficher « n / max ») ; area (zone de texte) ; short (zone basse) ;
        oneLine (zone de texte sur une seule ligne) ; money (montant en euros) ; blankIsOriginal (vide = valeur d'origine) ;
-       inputmode ; noCaps (ni majuscule automatique ni correcteur) ; restoreLabel (texte du bouton de retour) ;
+       inputmode ; placeholder (exemple grisé quand le champ est vide) ; noCaps (ni majuscule automatique ni correcteur) ; restoreLabel (texte du bouton de retour) ;
        changed() : le champ diffère-t-il de l'origine ? ; parse(texte) -> { value } ou { error } ; commit(valeur) ; reset() ; onCheck() après chaque contrôle.
-     Renvoie { el, input, check, reveal } ; check() recontrôle la valeur saisie, reveal() recontrôle et montre l'erreur tout de suite. */
+     Renvoie { el, input, check, reveal, dispose } ; check() recontrôle la valeur saisie, reveal() recontrôle et montre l'erreur tout de suite,
+     dispose() oublie l'erreur du champ (quand le champ est retiré de l'écran sans que l'onglet soit réaffiché). */
   function field(o) {
     var id = uid('c'), touched = false, describedBy = [], input, hint, orig, err, counter, restore, foot, control;
     err = h('p', { class: 'field__err', id: id + 'e', role: 'alert' });
@@ -794,7 +993,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     input = h(o.area ? 'textarea' : 'input', {
       id: id, class: 'input' + (o.short ? ' input--short' : ''), type: o.area ? undefined : 'text', value: o.value, maxlength: o.max, rows: o.area ? (o.short ? '2' : '5') : undefined,
       inputmode: o.money ? 'decimal' : o.inputmode, autocomplete: 'off', autocapitalize: o.noCaps ? 'none' : undefined, spellcheck: o.noCaps ? 'false' : undefined,
-      'aria-describedby': describedBy.join(' ')
+      placeholder: o.placeholder, 'aria-describedby': describedBy.join(' ')
     });
     counter = o.counter ? h('span', { class: 'counter', 'aria-hidden': 'true' }) : null;
     restore = h('button', { type: 'button', class: 'linkbtn linkbtn--accent', text: o.restoreLabel || RESTORE, hidden: true });
@@ -834,7 +1033,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     });
     refresh();
     return {
-      input: input, check: check, reveal: function () { touched = true; check(); },
+      input: input, check: check, reveal: function () { touched = true; check(); }, dispose: function () { state.errors.delete(id); },
       el: h('div', { class: 'field' }, [h('label', { class: 'field__label', for: id, text: o.label }), hint, orig, control, err, foot])
     };
   }
@@ -943,6 +1142,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
         h('div', { class: 'art__info' }, [
           h('h2', { class: 'art__name', text: a.name }),
           h('p', { class: 'art__price', text: fmtPrice(a.price) }),
+          a.ship !== undefined ? h('p', { class: 'art__ship', text: fmtShip(a.ship) }) : null,
           h('div', { class: 'pills' }, articlePills(a).map(function (p) { return h('span', { class: 'pill pill--' + p[0], text: p[1] }); }))
         ])
       ]),
@@ -959,7 +1159,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
       h('h1', { class: 'viewtitle', tabindex: '-1', text: stock ? 'Pièces en stock' : 'Nouveautés sur commande' }),
       h('p', { class: 'lead', text: stock
         ? 'Les pièces déjà crochetées, prêtes à partir sous 24 à 48\xA0h\xA0: elles apparaissent sur la page «\xA0En stock\xA0» de votre site. Quand une pièce est vendue, sa quantité tombe à 0 et elle disparaît de la page.'
-        : 'Vos nouveautés, crochetées à la commande\xA0: elles apparaissent en haut de la page d’accueil de votre site.' })
+        : 'Vos nouveautés, crochetées à la commande\xA0: elles apparaissent dans la boutique, à côté de vos autres pièces.' })
     ]));
     if (state.corrupt.length) {
       root.appendChild(h('p', { class: 'notice notice--warn', text: 'Certaines informations du site n’ont pas pu être lues (' + state.corrupt.map(function (n) { return CORRUPT_NAMES[n]; }).join(', ') + '). Elles seront remplacées si vous les modifiez.' }));
@@ -977,7 +1177,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     if (!list.length) {
       root.appendChild(h('div', { class: 'card empty cards' }, [
         h('p', { class: 'empty__title', text: stock ? 'Aucune pièce en stock pour le moment.' : 'Aucune nouveauté pour le moment.' }),
-        h('p', { class: 'empty__txt', text: stock ? 'Ajoutez une pièce déjà crochetée\xA0: elle apparaîtra sur la page «\xA0En stock\xA0» de votre site.' : 'Ajoutez une nouveauté\xA0: elle apparaîtra tout en haut de votre page d’accueil.' })
+        h('p', { class: 'empty__txt', text: stock ? 'Ajoutez une pièce déjà crochetée\xA0: elle apparaîtra sur la page «\xA0En stock\xA0» de votre site.' : 'Ajoutez une nouveauté\xA0: elle apparaîtra dans la boutique, à côté de vos autres pièces.' })
       ]));
       return;
     }
@@ -993,7 +1193,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
   function openArticleForm(editId, copyOf, defKind) {
     var list = state.work.articles, existing = editId ? list.find(function (a) { return a.id === editId; }) : null, src = existing || copyOf || null;
     var d, layer, sheet, initial, sending = 0;
-    var nameIn, nameErr, priceIn, priceErr, qtyIn, qtyErr, qtyField, descIn, detIn, catSel, grid, photoErr, addBtn, fileInput, kindBoxes = [], formMsg, saveBtn;
+    var nameIn, nameErr, priceIn, priceErr, shipIn, shipErr, shipHintEl, qtyIn, qtyErr, qtyField, descIn, detIn, catSel, grid, photoErr, addBtn, fileInput, kindBoxes = [], formMsg, saveBtn;
 
     if (!existing && list.length >= MAX_ARTICLES) { toast('Vous avez déjà ' + MAX_ARTICLES + ' articles\xA0: c’est le maximum. Supprimez-en un avant d’en ajouter.', { error: true }); return; }
     d = {
@@ -1002,7 +1202,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     };
 
     function snap() {
-      return JSON.stringify([nameIn.value, priceIn.value, qtyIn.value, d.kind, d.isNew, d.visible, catSel.value, descIn.value, detIn.value, d.photos.map(function (p) { return p.path || p.key; })]);
+      return JSON.stringify([nameIn.value, priceIn.value, shipIn.value, qtyIn.value, d.kind, d.isNew, d.visible, catSel.value, descIn.value, detIn.value, d.photos.map(function (p) { return p.path || p.key; })]);
     }
     function setErr(input, errEl, msg) {
       errEl.textContent = msg || '';
@@ -1061,6 +1261,9 @@ if (window.top !== window.self) { window.top.location = window.location; }
     nameIn = h('input', { id: uid('f'), class: 'input', type: 'text', value: src ? (copyOf ? (src.name + ' (copie)').slice(0, 80) : src.name) : '', maxlength: '80', autocomplete: 'off', placeholder: 'Ex. Sac bleu-gris', 'aria-describedby': nameErr.id });
     priceErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
     priceIn = h('input', { id: uid('f'), class: 'input', type: 'text', inputmode: 'decimal', value: src ? String(src.price).replace('.', ',') : '', autocomplete: 'off', placeholder: 'Ex. 45', 'aria-describedby': priceErr.id });
+    shipHintEl = h('p', { class: 'field__hint', id: uid('h'), text: shipHint() });
+    shipErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
+    shipIn = h('input', { id: uid('f'), class: 'input', type: 'text', inputmode: 'decimal', value: src && typeof src.ship === 'number' ? moneyText(src.ship) : '', autocomplete: 'off', placeholder: 'Tarif par défaut', 'aria-describedby': shipHintEl.id + ' ' + shipErr.id });
     qtyErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
     qtyIn = h('input', { id: uid('f'), class: 'input', type: 'text', inputmode: 'numeric', value: String(src && src.kind === 'dispo' ? src.qty : 1), maxlength: '2', autocomplete: 'off', 'aria-describedby': qtyErr.id });
     catSel = h('select', { id: uid('f'), class: 'input' }, CATS.map(function (c) { return h('option', { value: c[0], text: c[1] }); }));
@@ -1072,6 +1275,8 @@ if (window.top !== window.self) { window.top.location = window.location; }
     qtyIn.addEventListener('input', function () { if (qtyErr.textContent) { setErr(qtyIn, qtyErr, readQty() === null ? 'La quantité doit être un nombre entre 0 et 99.' : ''); } });
     nameIn.addEventListener('change', function () { setErr(nameIn, nameErr, cleanText(nameIn.value, false) ? '' : 'Écrivez le nom de l’article.'); });
     priceIn.addEventListener('change', function () { setErr(priceIn, priceErr, parseArticlePrice(priceIn.value).error); });
+    shipIn.addEventListener('input', function () { if (shipErr.textContent) { setErr(shipIn, shipErr, parseShipFee(shipIn.value).error); } });
+    shipIn.addEventListener('change', function () { setErr(shipIn, shipErr, parseShipFee(shipIn.value).error); });
 
     function readQty() { var s = qtyIn.value.trim(); return /^[0-9]{1,2}$/.test(s) ? Number(s) : null; }
     function stepQty(delta) {
@@ -1114,18 +1319,19 @@ if (window.top !== window.self) { window.top.location = window.location; }
 
     /* --- enregistrement --- */
     function save() {
-      var name = cleanText(nameIn.value, false), pr = parseArticlePrice(priceIn.value), q = d.kind === 'dispo' ? readQty() : 0, art, idx, at;
+      var name = cleanText(nameIn.value, false), pr = parseArticlePrice(priceIn.value), sh = parseShipFee(shipIn.value), q = d.kind === 'dispo' ? readQty() : 0, art, idx, at;
       /* tous les champs sont contrôlés (chaque message s'affiche à côté de son champ) ; le focus va au premier champ en erreur */
       var badName = setErr(nameIn, nameErr, name ? '' : 'Écrivez le nom de l’article.');
       var badPrice = setErr(priceIn, priceErr, pr.error || '');
+      var badShip = setErr(shipIn, shipErr, sh.error || '');
       var badQty = d.kind === 'dispo' ? setErr(qtyIn, qtyErr, q === null ? 'La quantité doit être un nombre entre 0 et 99.' : '') : null;
-      var first = badName || badPrice || badQty;
+      var first = badName || badPrice || badShip || badQty;
       formMsg.textContent = '';
       if (d.photos.some(function (p) { return p.status === 'sending'; })) { formMsg.textContent = 'Une photo est encore en cours d’envoi\xA0: patientez un instant, puis enregistrez.'; return; }
       if (d.photos.some(function (p) { return p.status === 'error'; })) { formMsg.textContent = 'Une photo n’a pas pu être envoyée\xA0: retirez-la (ou ajoutez-la de nouveau), puis enregistrez.'; return; }
       if (first) { first.focus(); return; }
       art = normalizeArticle({
-        id: existing ? existing.id : newArticleId(list), name: name, price: pr.value, kind: d.kind, qty: q, desc: descIn.value, details: detIn.value,
+        id: existing ? existing.id : newArticleId(list), name: name, price: pr.value, ship: sh.value, kind: d.kind, qty: q, desc: descIn.value, details: detIn.value,
         photos: d.photos.map(function (p) { return p.path; }), isNew: d.isNew, hidden: !d.visible, cat: catSel.value
       });
       if (!art) { formMsg.textContent = 'Cet article n’a pas pu être enregistré\xA0: vérifiez le nom et le prix.'; return; }
@@ -1160,11 +1366,14 @@ if (window.top !== window.self) { window.top.location = window.location; }
       h('div', { class: 'field' }, [h('label', { class: 'field__label', for: priceIn.id, text: 'Prix' }),
         h('div', { class: 'money' }, [priceIn, h('span', { class: 'money__sign', 'aria-hidden': 'true', text: '€' })]),
         h('p', { class: 'field__hint', text: 'En euros. Exemple\xA0: 45 ou 12,50.' }), priceErr]),
+      h('div', { class: 'field' }, [h('label', { class: 'field__label', for: shipIn.id, text: 'Frais de livraison de cette pièce' }),
+        h('div', { class: 'money' }, [shipIn, h('span', { class: 'money__sign', 'aria-hidden': 'true', text: '€' })]),
+        shipHintEl, shipErr]),
       h('fieldset', { class: 'fieldset' }, [
         h('legend', { class: 'legend', text: 'Type d’article' }),
         h('div', { class: 'choices' }, [
           choice('dispo', 'Pièce en stock (prête à partir)', 'Déjà crochetée\xA0: elle apparaît sur la page «\xA0En stock\xA0» et part sous 24 à 48\xA0h.'),
-          choice('commande', 'Nouveauté, je la crochète à la commande', 'Je la crochète quand une cliente la commande\xA0: elle apparaît sur la page d’accueil.')
+          choice('commande', 'Nouveauté, je la crochète à la commande', 'Je la crochète quand une cliente la commande\xA0: elle apparaît dans la boutique, à côté de vos autres pièces.')
         ])
       ]),
       qtyField,
@@ -1302,7 +1511,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
   }
 
   /* ======================================================================
-     13. BOUTIQUE : prix et textes des pièces
+     13. BOUTIQUE : prix, frais de livraison et textes des pièces, couleurs de fil
      ====================================================================== */
   function curSurcharge() { var v = group('pricing').finishSurcharge; return typeof v === 'number' ? v : originSettings().surcharge; }
   function moneyText(n) { return String(n).replace('.', ','); }
@@ -1329,6 +1538,241 @@ if (window.top !== window.self) { window.top.location = window.location; }
       reset: function () { setProd(id, function (e) { delete e[key]; }); }
     });
   }
+  /* frais de livraison d'une pièce de la boutique : vide = tarif par défaut (alors pas de « ship » dans le fichier), 0 = livraison offerte */
+  function shipField(id) {
+    return field({
+      label: 'Frais de livraison de cette pièce', money: true, hint: shipHint(), placeholder: 'Tarif par défaut',
+      value: typeof prodEntry(id).ship === 'number' ? moneyText(prodEntry(id).ship) : '',
+      changed: function () { return typeof prodEntry(id).ship === 'number'; },
+      parse: parseShipFee,
+      commit: function (v) { setProd(id, function (e) { if (v === undefined) { delete e.ship; } else { e.ship = v; } }); },
+      reset: function () { setProd(id, function (e) { delete e.ship; }); }
+    });
+  }
+
+  /* ---------- « Couleurs de fil » ---------- */
+  /* pose la couleur d'une pastille : la politique de sécurité de la page interdit les styles en ligne, mais pas style.setProperty (valeur contrôlée : #RRGGBB) */
+  function paintSwatch(el, hex) { if (HEX_RE.test(String(hex))) { el.style.setProperty('background', hex); } }
+  /* identifiant d'un nouveau coloris, tiré du nom : minuscules sans accents, tirets, 30 caractères au plus (2 au moins) */
+  function colorSlug(name) {
+    var s = norm(name).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30).replace(/-+$/, '');
+    return s.length >= 2 ? s : 'couleur';
+  }
+  /* ... rendu unique : « vert-sauge », puis « vert-sauge-2 », « vert-sauge-3 »… ; taken = les identifiants déjà pris (coloris d'origine et ajoutés) */
+  function newColorId(name, taken) {
+    var base = colorSlug(name), id = base, n = 1, suffix;
+    while (hasOwn(taken, id)) { n += 1; suffix = '-' + n; id = base.slice(0, 30 - suffix.length).replace(/-+$/, '') + suffix; }
+    return id;
+  }
+
+  /* fenêtre « Ajouter une couleur » : nom (obligatoire), couleur du fil, ton. onAdded(id, nom) est appelé une fois la couleur ajoutée. */
+  function openColorDialog(onAdded) {
+    var tid = uid('t'), layer, form, nameIn, nameErr, hexIn, hexErr, hexTxt, toneSel, toneHint, toneErr, formMsg, picked = false;
+    function setErr(input, errEl, msg) {
+      errEl.textContent = msg || '';
+      if (msg) { input.setAttribute('aria-invalid', 'true'); } else { input.removeAttribute('aria-invalid'); }
+      return msg ? input : null;
+    }
+    function close() { closeLayer(layer); }
+    function pick() { picked = true; hexTxt.textContent = hexIn.value.toUpperCase(); setErr(hexIn, hexErr, ''); }
+    function submit() {
+      var name = cleanText(nameIn.value, false), st = readColors(state.work.catalog), taken = {}, id, badName, badHex, badTone;
+      formMsg.textContent = '';
+      badName = setErr(nameIn, nameErr, name ? '' : 'Donnez un nom à la couleur, par exemple ' + guill('Vert sauge') + '.');
+      badHex = setErr(hexIn, hexErr, picked ? '' : 'Choisissez la couleur du fil\xA0: appuyez sur la pastille de couleur.');
+      badTone = setErr(toneSel, toneErr, toneSel.value ? '' : 'Choisissez un ton\xA0: chaud, froid ou neutre.');
+      if (badName || badHex || badTone) { (badName || badHex || badTone).focus(); return; }
+      if (st.added.length >= MAX_COLORS) {
+        formMsg.textContent = 'Vous avez déjà ' + MAX_COLORS + ' couleurs ajoutées\xA0: c’est le maximum. Supprimez-en une avant d’en ajouter une autre.';
+        return;
+      }
+      baseColors().forEach(function (c) { taken[c.id] = true; });
+      st.added.forEach(function (x) { taken[x.id] = true; });
+      id = newColorId(name, taken);
+      mutateColors(function (s) { s.added.push({ id: id, name: name, hex: hexIn.value.toUpperCase(), tone: toneSel.value }); });
+      close(); changed(); onAdded(id, name);
+    }
+
+    nameErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
+    nameIn = h('input', { id: uid('f'), class: 'input', type: 'text', maxlength: '30', autocomplete: 'off', placeholder: 'Ex. Vert sauge', 'aria-describedby': nameErr.id });
+    hexErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
+    hexIn = h('input', { id: uid('f'), class: 'colorin', type: 'color', value: '#9caf88', 'aria-describedby': hexErr.id });
+    hexTxt = h('span', { class: 'colorbox__hex' });
+    hexIn.addEventListener('input', pick); hexIn.addEventListener('change', pick);
+    toneHint = h('p', { class: 'field__hint', id: uid('h'), text: 'Le ton sert aux chaînes de sac\xA0: dorée avec les tons chauds, argentée avec les tons froids\xA0; un ton neutre va avec les deux.' });
+    toneErr = h('p', { class: 'field__err', id: uid('e'), role: 'alert' });
+    toneSel = h('select', { id: uid('f'), class: 'input', 'aria-describedby': toneHint.id + ' ' + toneErr.id },
+      [h('option', { value: '', text: 'Choisir un ton…' })].concat(TONES.map(function (t) { return h('option', { value: t[0], text: t[1] }); })));
+    toneSel.value = '';
+    toneSel.addEventListener('change', function () { if (toneSel.value) { setErr(toneSel, toneErr, ''); } });
+    nameIn.addEventListener('input', function () { if (nameErr.textContent && cleanText(nameIn.value, false)) { setErr(nameIn, nameErr, ''); } });
+    formMsg = h('p', { class: 'field__err', role: 'alert' });
+    form = h('form', { class: 'dialog dialog--form', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': tid, tabindex: '-1' }, [
+      h('h2', { class: 'dialog__title', id: tid, text: 'Ajouter une couleur' }),
+      h('p', { class: 'dialog__text', text: 'Les couleurs que vous ajoutez n’ont pas de photo\xA0: le site recolore la pièce en 3D.' }),
+      h('div', { class: 'field' }, [h('label', { class: 'field__label', for: nameIn.id, text: 'Nom de la couleur' }), nameIn, nameErr]),
+      h('div', { class: 'field' }, [h('label', { class: 'field__label', for: hexIn.id, text: 'Couleur du fil' }),
+        h('div', { class: 'colorbox' }, [hexIn, hexTxt]),
+        h('p', { class: 'field__hint', text: 'Appuyez sur la pastille pour choisir la couleur.' }), hexErr]),
+      h('div', { class: 'field' }, [h('label', { class: 'field__label', for: toneSel.id, text: 'Ton' }), toneSel, toneHint, toneErr]),
+      formMsg,
+      h('div', { class: 'dialog__btns' }, [
+        button('Annuler', 'btn btn--ghost', close),
+        h('button', { type: 'submit', class: 'btn btn--primary' }, [icon('check'), h('span', { text: 'Ajouter la couleur' })])
+      ])
+    ]);
+    form.addEventListener('submit', function (ev) { ev.preventDefault(); submit(); });
+    /* avec une souris, le curseur va dans le nom ; sur téléphone on n'ouvre pas le clavier d'emblée */
+    layer = openLayer(h('div', { class: 'overlay overlay--dialog', tabindex: '-1' }, [form]),
+      { onEscape: close, focus: window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches ? nameIn : form });
+  }
+
+  /* la section « Couleurs de fil » de l'onglet Boutique : renvoie { el, title } (title : le titre, pour y amener le focus) */
+  function colorsSection() {
+    var title = h('h2', { class: 'sectitle', tabindex: '-1', text: 'Couleurs de fil' }), listEl = h('div', { class: 'sections' }),
+      sumEl = h('p', { class: 'field__hint' }), addedEl = h('p', { class: 'field__hint' }), fields = [], addBtn;
+
+    function paintSummary() {
+      var list = colorEntries(state.work.catalog), on = list.filter(function (c) { return !c.hidden; }).length;
+      sumEl.textContent = plural(on, 'couleur proposée', 'couleurs proposées') + ' à vos clientes, sur ' + list.length + '.';
+      addedEl.textContent = plural(list.length - baseColors().length, 'couleur ajoutée', 'couleurs ajoutées') + ' sur ' + MAX_COLORS + ' au maximum.';
+    }
+
+    /* une ligne par coloris : pastille, nom et état ; elle s'ouvre sur les réglages du coloris */
+    function colorRow(c) {
+      var key = 'color:' + c.id, cid = uid('k'), det, sw, nameEl, metaEl, sum, body, nameField, hexIn, hexTxt, toneSel, onSw, restoreBtn = null, delBtn, acts = [], hexBlock = [];
+      function cur() { return colorEntries(state.work.catalog).filter(function (x) { return x.id === c.id; })[0] || c; }
+      function paint() {
+        var x = cur(), meta = ['Ton ' + x.tone];
+        paintSwatch(sw, x.hex);
+        nameEl.textContent = x.name;
+        if (!x.base) { meta.push('ajoutée'); } else if (x.edited) { meta.push('modifiée'); }
+        if (x.hidden) { meta.push('retirée de la vente'); }
+        metaEl.textContent = meta.join(' · ');
+        metaEl.className = 'crow__meta' + (x.hidden ? ' crow__meta--off' : '');
+        if (restoreBtn) { restoreBtn.hidden = !x.edited; }
+      }
+      /* écrit un champ du coloris (value undefined = retirer le changement d'un coloris d'origine) */
+      function setProp(prop, value) {
+        mutateColors(function (st) {
+          var e, a;
+          if (c.base) {
+            e = hasOwn(st.edits, c.id) ? st.edits[c.id] : (st.edits[c.id] = {});
+            if (value === undefined) { delete e[prop]; } else { e[prop] = value; }
+            if (!Object.keys(e).length) { delete st.edits[c.id]; }
+          } else {
+            a = st.added.filter(function (x) { return x.id === c.id; })[0];
+            if (a && value !== undefined) { a[prop] = value; }
+          }
+        });
+      }
+      function touched() { paint(); paintSummary(); changed(); }
+
+      sw = h('span', { class: 'swatch', 'aria-hidden': 'true' });
+      nameEl = h('span', { class: 'crow__name' });
+      metaEl = h('span', { class: 'crow__meta' });
+      nameField = field({
+        label: 'Nom de la couleur', max: 30, counter: true, value: c.name, original: c.base ? c.origin.name : undefined, blankIsOriginal: c.base,
+        changed: function () { return false; },                       /* le retour à l'origine se fait pour toute la couleur (bouton plus bas) */
+        parse: function (raw) {
+          var v = cleanText(raw, false);
+          if (!v) { return c.base ? { value: undefined } : { error: 'Donnez un nom à cette couleur.' }; }
+          return { value: v };
+        },
+        commit: function (v) { setProp('name', v); },
+        reset: function () { /* jamais appelé : le bouton de retour de ce champ reste caché */ },
+        onCheck: function () { paint(); paintSummary(); }
+      });
+      fields.push(nameField);
+      hexIn = h('input', { id: cid + 'x', class: 'colorin', type: 'color', value: c.hex.toLowerCase() });
+      hexTxt = h('span', { class: 'colorbox__hex', text: c.hex });
+      hexIn.addEventListener('input', function () {
+        var v = hexIn.value.toUpperCase();
+        if (!HEX_RE.test(v)) { return; }
+        setProp('hex', v); hexTxt.textContent = v; touched();
+      });
+      toneSel = h('select', { id: cid + 't', class: 'input' }, TONES.map(function (t) { return h('option', { value: t[0], text: t[1] }); }));
+      toneSel.value = c.tone;
+      toneSel.addEventListener('change', function () { setProp('tone', toneSel.value); touched(); });
+      onSw = switchRow('Proposée aux clientes', 'Éteignez pour retirer cette couleur de la vente\xA0: elle disparaît du site et ne peut plus être commandée.', !c.hidden, function (v) {
+        mutateColors(function (st) {
+          var i = st.hidden.indexOf(c.id);
+          if (v && i >= 0) { st.hidden.splice(i, 1); } else if (!v && i < 0) { st.hidden.push(c.id); }
+        });
+        touched();
+      });
+      if (c.base) {
+        hexBlock.push(h('p', { class: 'field__hint', text: 'À l’origine' + COLON + c.origin.hex + ', ton ' + c.origin.tone + '.' }));
+        restoreBtn = button(RESTORE, 'linkbtn linkbtn--accent', function () {
+          mutateColors(function (st) { delete st.edits[c.id]; });
+          changed(); drawColors(c.id);
+        }, null, { 'aria-label': RESTORE + ' de ' + guill(c.origin.name), hidden: !c.edited });
+        acts.push(restoreBtn);
+      } else {
+        delBtn = button('Supprimer', 'btn btn--outline-danger btn--sm', async function () {
+          var list = colorEntries(state.work.catalog), at = list.map(function (x) { return x.id; }).indexOf(c.id), name = cur().name, ok;
+          ok = await confirmBox({ title: 'Supprimer cette couleur\xA0?', yes: 'Oui, supprimer', no: 'Non, la garder', danger: true,
+            text: guill(name) + ' ne sera plus proposée à vos clientes après la prochaine publication. Pour la cacher sans la perdre, éteignez plutôt ' + guill('Proposée aux clientes') + '.' });
+          if (!ok) { return; }
+          mutateColors(function (st) { st.added = st.added.filter(function (x) { return x.id !== c.id; }); });
+          changed(); drawColors(at > 0 ? list[at - 1].id : undefined);
+          toast(guill(name) + ' sera retirée du site à la prochaine publication.');
+        }, 'trash', { 'aria-label': 'Supprimer ' + guill(c.name) });
+        acts.push(delBtn);
+      }
+      body = h('div', { class: 'sec__body' }, [
+        nameField.el,
+        h('div', { class: 'field' }, [h('label', { class: 'field__label', for: hexIn.id, text: 'Couleur du fil' }), h('div', { class: 'colorbox' }, [hexIn, hexTxt])].concat(hexBlock)),
+        h('div', { class: 'field' }, [h('label', { class: 'field__label', for: toneSel.id, text: 'Ton' }), toneSel]),
+        h('div', { class: 'field' }, [onSw.el]),
+        h('div', { class: 'crow__acts' }, acts)
+      ]);
+      sum = h('summary', { class: 'sec__sum crow__sum' }, [sw, h('span', { class: 'crow__txt' }, [nameEl, metaEl])]);
+      det = h('details', { class: 'sec crow' }, [sum, body]);
+      det.open = state.openSections.has(key);
+      det.addEventListener('toggle', function () { if (det.open) { state.openSections.add(key); } else { state.openSections.delete(key); } });
+      paint();
+      return { el: det, summary: sum };
+    }
+
+    /* (re)dessine toute la liste ; focusId : le coloris dont la ligne reçoit le focus */
+    function drawColors(focusId) {
+      var focusEl = null;
+      fields.forEach(function (f) { f.dispose(); });
+      fields = [];
+      clear(listEl);
+      colorEntries(state.work.catalog).forEach(function (c) {
+        var r = colorRow(c);
+        listEl.appendChild(r.el);
+        if (c.id === focusId) { focusEl = r.summary; }
+      });
+      paintSummary();
+      if (focusEl) { focusEl.focus(); }
+    }
+
+    addBtn = button('Ajouter une couleur', 'btn btn--ghost', function () {
+      if (readColors(state.work.catalog).added.length >= MAX_COLORS) {
+        toast('Vous avez déjà ' + MAX_COLORS + ' couleurs ajoutées\xA0: c’est le maximum. Supprimez-en une avant d’en ajouter une autre.', { error: true });
+        return;
+      }
+      openColorDialog(function (id, name) {
+        state.openSections.add('color:' + id);
+        drawColors(id);
+        toast(guill(name) + ' est ajoutée. Appuyez sur ' + guill('Publier') + ' pour la mettre en ligne.');
+      });
+    }, 'plus');
+    drawColors();
+    return {
+      title: title,
+      el: h('div', {}, [
+        title,
+        h('p', { class: 'lead lead--tight', text: 'Les couleurs de fil que vos clientes peuvent choisir. Vous pouvez changer le nom, la couleur et le ton des couleurs d’origine, en retirer de la vente, ou en ajouter d’autres.' }),
+        h('p', { class: 'notice', text: 'Les couleurs que vous ajoutez n’ont pas de photo\xA0: le site recolore la pièce en 3D. Le ton sert aux chaînes de sac\xA0: dorée avec les tons chauds, argentée avec les tons froids\xA0; un ton neutre va avec les deux.' }),
+        sumEl, h('div', { class: 'toolbar colors__bar' }, [addBtn]), addedEl, listEl
+      ])
+    };
+  }
+
   function productCard(p) {
     var id = p.id, tid = uid('t'), vis, kids;
     vis = switchRow('Visible sur le site', 'Éteignez pour cacher cette pièce de votre boutique.', prodEntry(id).hidden !== true, function (v) {
@@ -1339,6 +1783,8 @@ if (window.top !== window.self) { window.top.location = window.location; }
     if (p.quote !== true) {
       kids.push(h('p', { class: 'card__sub', text: Array.isArray(p.sizes) ? 'Prix selon la taille' : 'Prix selon le modèle' }));
       priceItems(p).forEach(function (it) { kids.push(priceField(id, it).el); });
+      kids.push(h('p', { class: 'card__sub', text: 'Livraison' }));
+      kids.push(shipField(id).el);
     }
     kids.push(productTextField(p, 'tagline', 'Accroche', 'La phrase courte sous le nom de la pièce.', 160, false).el);
     kids.push(productTextField(p, 'desc', 'Description', '', 700, true).el);
@@ -1346,7 +1792,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     return h('section', { class: 'card', 'aria-labelledby': tid }, kids);
   }
   RENDERERS.boutique = function (root) {
-    var products = productList(), origin = originSettings().surcharge, reminder, sur;
+    var products = productList(), origin = originSettings().surcharge, reminder, sur, colors = colorsSection();
     function paintReminder() { reminder.textContent = 'Les textes qui parlent de ' + fmtPrice(curSurcharge()) + ' (questions fréquentes, atelier) se changent dans l’onglet Textes.'; }
     reminder = h('p', { class: 'field__hint' });
     sur = field({
@@ -1361,13 +1807,15 @@ if (window.top !== window.self) { window.top.location = window.location; }
     paintReminder();
     root.appendChild(h('div', { class: 'viewhead' }, [
       h('h1', { class: 'viewtitle', tabindex: '-1', text: 'La boutique' }),
-      h('p', { class: 'lead', text: 'Les prix et les textes des pièces que vos clientes peuvent commander. Un champ laissé tel quel garde la valeur d’origine.' })
+      h('p', { class: 'lead', text: 'Les prix, les frais de livraison et les textes des pièces que vos clientes peuvent commander, puis vos couleurs de fil. Un champ laissé tel quel garde la valeur d’origine.' }),
+      button('Aller aux couleurs de fil', 'linkbtn linkbtn--accent', function () { colors.title.focus(); })
     ]));
     root.appendChild(h('div', { class: 'stack' }, [h('section', { class: 'card' }, [sur.el, reminder])]
       .concat(products.filter(function (p) { return p.quote !== true; }).map(productCard))));
     root.appendChild(h('h2', { class: 'sectitle', text: 'Pièces sur devis' }));
     root.appendChild(h('p', { class: 'lead lead--tight', text: 'Ces pièces se commandent sur devis\xA0: il n’y a pas de prix à modifier, seulement la visibilité et les textes.' }));
     root.appendChild(h('div', { class: 'stack' }, products.filter(function (p) { return p.quote === true; }).map(productCard)));
+    root.appendChild(colors.el);
   };
 
   /* ======================================================================
@@ -1647,7 +2095,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
   };
 
   /* ======================================================================
-     16. LIVRAISON ET CONTACT
+     16. LIVRAISON ET CONTACT (et marchés de la fenêtre de l'accueil)
      ====================================================================== */
   var PHONE_RE = /^[0-9+ .()-]{6,20}$/, EMAIL_RE = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']{2,}$/, INSTA_RE = /^[A-Za-z0-9._]{1,30}$/;
 
@@ -1692,8 +2140,141 @@ if (window.top !== window.self) { window.top.location = window.location; }
     return h('section', { class: 'card' }, [h('h2', { class: 'card__title', text: o.title }), sw.el, f.el]);
   }
 
+  /* « Marchés et rendez-vous » : la fenêtre de l'accueil (settings.events). Une ligne = une date (date, ville, lieu, horaires).
+     Les lignes gardent l'ordre où Oriana les a mises pendant qu'elle travaille ; le fichier, lui, est toujours trié par date.
+     Une ligne vide est ignorée ; une ligne à moitié remplie bloque la publication (message à côté du champ). */
+  function marketsCard() {
+    var tid = uid('t'), evActive = eventsView(state.work.settings).active, rows = [], listEl = h('div', { class: 'mrows' }),
+      countEl = h('p', { class: 'field__hint' }), sw, addBtn, resetBtn;
+
+    function paintMeta() {
+      countEl.textContent = plural(rows.length, 'date', 'dates') + ' sur ' + MAX_EVENTS + ' au maximum.';
+      addBtn.disabled = rows.length >= MAX_EVENTS;
+      resetBtn.hidden = !isObj(state.work.settings.events);
+    }
+    /* range dans les réglages l'interrupteur et les dates valides, triées par jour */
+    function syncEvents() {
+      writeEvents(evActive, sortDays(rows.map(function (r) { return r.item; }).filter(Boolean)));
+      paintMeta(); changed();
+    }
+    /* un champ d'une ligne : étiquette, saisie, message d'erreur (montré quand la ligne a été quittée, ou à la publication) */
+    function mini(label, attrs) {
+      var f = { key: uid('mf'), touched: false, msg: '' };
+      f.err = h('p', { class: 'field__err', id: f.key + 'e', role: 'alert' });
+      f.input = h('input', Object.assign({ id: f.key, class: 'input', autocomplete: 'off', 'aria-describedby': f.key + 'e' }, attrs));
+      f.paint = function () {
+        var m = f.touched ? f.msg : '';
+        f.err.textContent = m;
+        if (m) { f.input.setAttribute('aria-invalid', 'true'); } else { f.input.removeAttribute('aria-invalid'); }
+      };
+      f.setMsg = function (m) {
+        f.msg = m;
+        if (m) { state.errors.set(f.key, { input: f.input, show: function () { f.touched = true; f.paint(); } }); } else { state.errors.delete(f.key); }
+        f.paint();
+      };
+      f.el = h('div', { class: 'field' }, [h('label', { class: 'field__label', for: f.key, text: label }), f.input, f.err]);
+      return f;
+    }
+    function forget(row) {
+      row.removed = true;
+      state.errors.delete(row.dateF.key); state.errors.delete(row.cityF.key);
+    }
+    function removeRow(row) {
+      var i = rows.indexOf(row), next;
+      if (i < 0) { return; }
+      forget(row);
+      rows.splice(i, 1);
+      if (row.el.parentNode) { row.el.parentNode.removeChild(row.el); }
+      syncEvents();
+      next = rows[Math.min(i, rows.length - 1)];
+      (next ? next.delBtn : addBtn).focus();
+    }
+    function makeRow(item) {
+      var row = { item: item ? { date: item.date, city: item.city, place: item.place, time: item.time } : null, removed: false }, headId = uid('mh'), titleEl, pastEl;
+      function values() {
+        return { date: row.dateF.input.value.trim(), city: cleanText(row.cityF.input.value, false), place: cleanText(row.placeF.input.value, false), time: cleanText(row.timeF.input.value, false) };
+      }
+      function isBlank(v) { return !v.date && !v.city && !v.place && !v.time; }
+      function paintTitle(v) {
+        var real = isRealDay(v.date), t = v.city ? v.city + (real ? ' · ' + fmtDay(v.date) : '') : (real ? fmtDay(v.date) : 'Nouvelle date');
+        titleEl.textContent = t;
+        row.delBtn.setAttribute('aria-label', 'Supprimer la date ' + guill(t));
+        pastEl.hidden = !(real && v.date < todayIso());
+      }
+      function sync() {
+        var v = values(), dMsg = '', cMsg = '';
+        if (row.removed) { return; }
+        if (!isBlank(v)) {
+          if (!v.date) { dMsg = 'Choisissez la date du marché.'; } else if (!isRealDay(v.date)) { dMsg = 'Cette date n’existe pas\xA0: choisissez-la dans le calendrier.'; }
+          if (!v.city) { cMsg = 'Écrivez la ville, par exemple Cucuron.'; }
+        }
+        row.dateF.setMsg(dMsg); row.cityF.setMsg(cMsg);
+        if (isBlank(v)) { row.item = null; } else if (!dMsg && !cMsg) { row.item = v; }      /* une ligne à moitié remplie garde sa dernière version valide */
+        paintTitle(v); syncEvents();
+      }
+      row.dateF = mini('Date', { type: 'date', value: item ? item.date : '', placeholder: 'AAAA-MM-JJ' });
+      row.cityF = mini('Ville', { type: 'text', maxlength: '40', value: item ? item.city : '', placeholder: 'Ex. Cucuron' });
+      row.placeF = mini('Lieu (facultatif)', { type: 'text', maxlength: '80', value: item ? item.place : '', placeholder: 'Ex. Au bord de l’étang' });
+      row.timeF = mini('Horaires (facultatif)', { type: 'text', maxlength: '30', value: item ? item.time : '', placeholder: 'Ex. 9 h – 17 h' });
+      titleEl = h('h3', { class: 'mrow__title', id: headId });
+      pastEl = h('p', { class: 'field__hint mrow__past', text: 'Cette date est passée\xA0: elle ne s’affiche plus sur le site.', hidden: true });
+      row.delBtn = button('Supprimer', 'item__btn item__btn--danger', async function () {
+        var ok = true;
+        if (!isBlank(values())) {
+          ok = await confirmBox({ title: 'Supprimer cette date\xA0?', yes: 'Oui, supprimer', no: 'Non, la garder', danger: true,
+            text: guill(titleEl.textContent) + ' ne s’affichera plus dans la fenêtre de l’accueil après la prochaine publication.' });
+        }
+        if (ok) { removeRow(row); }
+      }, 'trash');
+      [row.dateF, row.cityF, row.placeF, row.timeF].forEach(function (f) { f.input.addEventListener('input', sync); });
+      /* quand on quitte la ligne, les messages d'une ligne incomplète apparaissent */
+      row.el = h('div', { class: 'mrow', role: 'group', 'aria-labelledby': headId }, [
+        h('div', { class: 'mrow__head' }, [titleEl, row.delBtn]),
+        h('div', { class: 'mrow__grid' }, [row.dateF.el, row.cityF.el, row.placeF.el, row.timeF.el]),
+        pastEl
+      ]);
+      row.el.addEventListener('focusout', function (ev) {
+        if (row.el.contains(ev.relatedTarget)) { return; }
+        row.dateF.touched = true; row.cityF.touched = true; sync();
+      });
+      paintTitle(values());
+      return row;
+    }
+    /* (re)dessine les lignes d'après les réglages (marchés enregistrés, ou marchés d'origine) */
+    function build() {
+      rows.forEach(forget);
+      rows = []; clear(listEl);
+      eventsView(state.work.settings).items.forEach(function (it) { var r = makeRow(it); rows.push(r); listEl.appendChild(r.el); });
+      paintMeta();
+    }
+
+    sw = switchRow('Afficher la fenêtre à l’arrivée sur le site', 'Une petite fenêtre qui s’ouvre sur votre page d’accueil pour annoncer vos prochains marchés ou rendez-vous.', evActive,
+      function (v) { evActive = v; syncEvents(); });
+    addBtn = button('Ajouter une date', 'btn btn--ghost btn--sm', function () {
+      var row;
+      if (rows.length >= MAX_EVENTS) { return; }
+      row = makeRow(null); rows.push(row); listEl.appendChild(row.el); paintMeta();
+      row.dateF.input.focus();
+    }, 'plus');
+    resetBtn = button('Rétablir les marchés d’origine', 'linkbtn linkbtn--accent', async function () {
+      var ok = await confirmBox({ title: 'Rétablir les marchés d’origine\xA0?', yes: 'Oui, rétablir', no: 'Non, garder', danger: true,
+        text: 'Vos ajouts, retraits et changements de cette liste seront annulés\xA0: le site retrouvera ses marchés d’origine (' + ORIGIN_EVENTS.map(function (e) { return e.city; }).join(' et ') + ').' });
+      if (!ok) { return; }
+      delete state.work.settings.events; evActive = true; sw.input.checked = true;
+      build(); changed(); addBtn.focus();
+    });
+    build();
+    return h('section', { class: 'card', 'aria-labelledby': tid }, [
+      h('h2', { class: 'card__title', id: tid, text: 'Marchés et rendez-vous (fenêtre de l’accueil)' }),
+      sw.el,
+      h('p', { class: 'field__hint', text: 'Une date passée disparaît toute seule du site. Quand il n’y a plus de date à venir, la fenêtre ne s’affiche plus.' }),
+      listEl, countEl,
+      h('div', { class: 'toolbar' }, [addBtn, resetBtn])
+    ]);
+  }
+
   RENDERERS.livraison = function (root) {
-    var o = originSettings(), fee, modesErr, switches, modes = [['relais', 'Livraison en point relais'], ['main', 'Remise en main propre'], ['ensemble', 'On voit ensemble']], review;
+    var o = originSettings(), fee, sum, markets, modesErr, switches, modes = [['relais', 'Livraison en point relais'], ['main', 'Remise en main propre'], ['ensemble', 'On voit ensemble']], review;
     function modeOn(k) { return group('shipping')[k] !== false; }
     function checkModes() {
       var ok = modes.some(function (m) { return modeOn(m[0]); });
@@ -1701,13 +2282,18 @@ if (window.top !== window.self) { window.top.location = window.location; }
       if (ok) { state.errors.delete('modes'); } else { state.errors.set('modes', { input: switches[0].input, show: function () { /* le message est déjà affiché */ } }); }
     }
     fee = field({
-      label: 'Frais de livraison en point relais', money: true, hint: 'Un montant fixe par commande. Mettez 0 pour offrir la livraison.', original: moneyText(o.fee), originalLabel: fmtPrice(o.fee), blankIsOriginal: true,
-      value: moneyText(typeof group('shipping').fee === 'number' ? group('shipping').fee : o.fee),
+      label: 'Frais de livraison par défaut (point relais ou locker)', money: true, hint: 'S’applique aux pièces qui n’ont pas leur propre tarif (voir Boutique et chaque article).', original: moneyText(o.fee), originalLabel: fmtPrice(o.fee), blankIsOriginal: true,
+      value: moneyText(curShipFee()),
       changed: function () { return hasOwn(group('shipping'), 'fee'); },
       parse: moneyParser(0, 50, { empty: 'Écrivez le montant des frais (0 pour offrir la livraison).', range: 'Les frais doivent être compris entre 0 et 50' + NB + '€.' }),
       commit: function (v) { setSetting('shipping', 'fee', v, o.fee); },
       reset: function () { setSetting('shipping', 'fee', undefined); }
     });
+    /* « sum » n'est écrit que lorsque l'interrupteur est allumé ; éteint, la clé disparaît (une commande ne paie alors que le frais le plus élevé de ses pièces) */
+    sum = switchRow('Additionner les frais de livraison des pièces d’une commande',
+      'Éteint\xA0: une commande paie seulement le frais de livraison le plus élevé de ses pièces (un seul colis). Allumé\xA0: les frais de livraison de chaque pièce s’additionnent.',
+      group('shipping').sum === true, function (v) { setSetting('shipping', 'sum', v ? true : undefined); changed(); });
+    markets = marketsCard();
     modesErr = h('p', { class: 'field__err', role: 'alert' });
     switches = modes.map(function (m) {
       return switchRow(m[1], undefined, modeOn(m[0]), function (v) { setSetting('shipping', m[0], v, true); changed(); checkModes(); });
@@ -1726,11 +2312,11 @@ if (window.top !== window.self) { window.top.location = window.location; }
     });
     root.appendChild(h('div', { class: 'viewhead' }, [
       h('h1', { class: 'viewtitle', tabindex: '-1', text: 'Livraison et contact' }),
-      h('p', { class: 'lead', text: 'Les frais de livraison, vos coordonnées, une annonce sur votre site et la pause des commandes.' })
+      h('p', { class: 'lead', text: 'Les frais de livraison, vos coordonnées, une annonce sur votre site, vos marchés et la pause des commandes.' })
     ]));
     root.appendChild(h('div', { class: 'stack' }, [
       h('section', { class: 'card' }, [
-        h('h2', { class: 'card__title', text: 'Livraison' }), fee.el,
+        h('h2', { class: 'card__title', text: 'Livraison' }), fee.el, h('div', { class: 'field' }, [sum.el]),
         h('fieldset', { class: 'fieldset' }, [h('legend', { class: 'legend', text: 'Modes de remise proposés' })].concat(switches.map(function (s) { return s.el; }), [modesErr]))
       ]),
       h('section', { class: 'card' }, [
@@ -1743,6 +2329,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
         title: 'Annonce sur le site', switchLabel: 'Afficher un bandeau d’annonce', switchHint: 'Un message tout en haut de votre page d’accueil, par exemple pour des congés ou un marché.',
         label: 'Texte de l’annonce', hint: '', restoreLabel: 'Effacer le texte', required: 'Écrivez le texte de l’annonce, ou éteignez l’interrupteur.'
       }),
+      markets,
       switchedText('ordersPaused', 'message', {
         title: 'Pause des commandes', switchLabel: 'Mettre mes commandes en pause', switchHint: 'Vos clientes peuvent encore regarder, mais plus commander.',
         label: 'Message affiché aux clients', hint: 'Si vous ne mettez rien, ils verront' + COLON + guill('Les commandes sont momentanément en pause.'), restoreLabel: 'Effacer le message'
@@ -1818,7 +2405,10 @@ if (window.top !== window.self) { window.top.location = window.location; }
       arts = state.work.articles.filter(articleChange).map(function (a) { return a.name; });
       parts.push('Articles' + (arts.length ? ' : ' + arts.slice(0, 2).join(', ') + (arts.length > 2 ? '…' : '') : ''));
     }
-    if (names.indexOf('catalog') >= 0) { parts.push('Boutique'); }
+    if (names.indexOf('catalog') >= 0) {
+      if (productChanges(state.work.catalog, state.files.catalog)) { parts.push('Boutique'); }
+      if (colorChanges(state.work.catalog, state.files.catalog)) { parts.push('Couleurs'); }
+    }
     if (names.indexOf('texts') >= 0) { parts.push('Textes'); }
     if (names.indexOf('photos') >= 0) { parts.push('Photos'); }
     if (names.indexOf('settings') >= 0) { parts.push('Livraison et contact'); }
