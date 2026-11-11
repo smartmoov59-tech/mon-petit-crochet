@@ -4,8 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- Sécurité : le navigateur n'exécute que les scripts du site et ceux de SumUp (paiement) et Sendcloud (points relais), et ne charge que les services listés ici.
-     Détail et mode d'emploi : securite/POINT-SECURITE.md. Si l'adresse du mini-serveur de paiement n'est pas en workers.dev, l'ajouter à connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://embed.sendcloud.sc https://*.sumup.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.sumup.com https://api.sumup.com; connect-src 'self' https://*.sumup.com https://*.workers.dev https://embed.sendcloud.sc; frame-src 'self' https://www.google.com https://*.sumup.com https://embed.sendcloud.sc https://servicepoints.sendcloud.sc; object-src 'none'; base-uri 'self'; form-action 'self'">
+     Détail et mode d'emploi : securite/POINT-SECURITE.md. Si l'adresse du mini-serveur de paiement n'est pas en workers.dev, l'ajouter à connect-src.
+     frame-src : « https: » (tout cadre en https) est VOULU et nécessaire : la validation 3-D Secure de la banque de la cliente s'affiche dans un cadre dont l'adresse dépend de chaque banque
+     (SumUp y envoie le cadre, puis la banque) ; avec une liste d'adresses, le paiement par carte reste bloqué sur « Votre banque vous demande de valider le paiement » (constaté le 12 nov. 2026). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://embed.sendcloud.sc https://*.sumup.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.sumup.com https://api.sumup.com; connect-src 'self' https://*.sumup.com https://*.workers.dev https://embed.sendcloud.sc; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mon Petit Crochet by Oriana · Sacs, paniers et chaînes de téléphone au crochet, faits main</title>
 <meta name="description" content="Je crochète à la main sacs, paniers, chaînes de téléphone et pochettes, au pied du Luberon-Sud. Choisissez votre modèle, votre taille et vos couleurs de fil, commandez en ligne.">
 <meta name="theme-color" content="#F7F2EA">
@@ -181,17 +183,7 @@
   </div>
 </section>
 
-<!-- ============ NOUVEAUTÉS (sur commande) : alimenté par l'espace pro d'Oriana (js/content.js) ; la section disparaît s'il n'y a rien à montrer. Les pièces en stock sont sur en-stock.html ============ -->
-<section class="section fresh" id="disponibles" aria-labelledby="freshTitle" hidden>
-  <div class="wrap">
-    <header class="section__head">
-      <p class="eyebrow" data-reveal data-t="disponibles.eyebrow">Nouveau</p>
-      <h2 id="freshTitle" class="h2" data-split="words" data-t="disponibles.titre">Mes nouveautés.</h2>
-      <p class="lead" data-reveal data-t="disponibles.intro">Mes dernières créations. Je les crochète à la commande, dans le coloris de votre choix.</p>
-    </header>
-    <div class="grid" id="artGrid"></div>
-  </div>
-</section>
+<!-- Les nouveautés d'Oriana (articles « sur commande » de son espace pro, js/content.js) s'affichent dans la grille de la boutique ci-dessous, à côté des pièces d'origine : voir renderGrid dans js/shop.js. Les pièces en stock sont sur en-stock.html. -->
 
 <!-- ============ BOUTIQUE ============ -->
 <section class="section shop" id="boutique" aria-labelledby="shopTitle">
@@ -552,6 +544,7 @@
         <h2 class="h3" id="amTitle"></h2>
         <p class="modal__desc" id="amDesc"></p>
         <p class="small" id="amDetails"></p>
+        <p class="small" id="amShip"></p>
       </div>
       <div class="modal__foot">
         <div class="total"><span>Prix</span><b id="amPrice"></b></div>
@@ -585,7 +578,7 @@
     <div class="noel__body">
       <p class="noel__eyebrow"><i aria-hidden="true">✦</i> Marchés de Noël <i aria-hidden="true">✦</i></p>
       <h2 class="noel__title" id="noelTitle">Retrouvons-nous <em>au marché</em> de Noël&nbsp;!</h2>
-      <p class="noel__lead" id="noelLead">Je serai là avec mes sacs, mes paniers et mes chaînes de téléphone crochetés main. Venez les toucher, choisir vos couleurs et trouver un joli cadeau fait main.</p>
+      <p class="noel__lead" id="noelLead" data-t="noel.lead">Je serai là avec mes sacs, mes paniers et mes chaînes de téléphone crochetés main. Venez les toucher, choisir vos couleurs et trouver un joli cadeau fait main.</p>
       <ul class="noel__dates">
         <li data-noel-date="2026-12-06">
           <span class="noel__cal" aria-hidden="true"><b>déc.</b><strong>6</strong></span>

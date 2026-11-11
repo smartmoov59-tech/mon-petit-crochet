@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- Sécurité : même politique que index.html (le navigateur n'exécute que les scripts du site et ceux de SumUp et de Sendcloud). Détail : securite/POINT-SECURITE.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://embed.sendcloud.sc https://*.sumup.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.sumup.com https://api.sumup.com; connect-src 'self' https://*.sumup.com https://*.workers.dev https://embed.sendcloud.sc; frame-src 'self' https://www.google.com https://*.sumup.com https://embed.sendcloud.sc https://servicepoints.sendcloud.sc; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://embed.sendcloud.sc https://*.sumup.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.sumup.com https://api.sumup.com; connect-src 'self' https://*.sumup.com https://*.workers.dev https://embed.sendcloud.sc; frame-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>En stock, expédié sous 24 à 48 h · Mon Petit Crochet by Oriana</title>
 <meta name="description" content="Sacs, paniers et chaînes de téléphone au crochet déjà prêts, expédiés sous 24 à 48 h. Des pièces uniques, faites main au pied du Luberon-Sud.">
 <meta name="theme-color" content="#F7F2EA">
@@ -58,7 +58,7 @@
       <p class="lead" data-t="stock.intro">Ces pièces sont déjà crochetées : je les prépare et je les expédie sous 24 à 48 h, ou je vous les remets en main propre. Chacune est unique : quand elle est partie, elle est partie.</p>
       <ul class="stockfacts">
         <li data-t="stock.fait1">Expédition sous 24 à 48 h</li>
-        <li data-ship-note>Livraison en point relais : <b data-ship-fee>5 €</b> par commande</li>
+        <li data-ship-note>Livraison en point relais : frais indiqués sur chaque pièce</li>
         <li data-t="stock.fait3">Remise en main propre : gratuite</li>
       </ul>
     </div>
@@ -121,6 +121,7 @@
         <h2 class="h3" id="amTitle"></h2>
         <p class="modal__desc" id="amDesc"></p>
         <p class="small" id="amDetails"></p>
+        <p class="small" id="amShip"></p>
       </div>
       <div class="modal__foot">
         <div class="total"><span>Prix</span><b id="amPrice"></b></div>
