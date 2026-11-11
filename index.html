@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Sécurité : le navigateur n'exécute que les scripts du site et ceux de SumUp (paiement) et Sendcloud (points relais), et ne charge que les services listés ici.
+     Détail et mode d'emploi : securite/POINT-SECURITE.md. Si l'adresse du mini-serveur de paiement n'est pas en workers.dev, l'ajouter à connect-src. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://embed.sendcloud.sc https://*.sumup.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://static.sumup.com https://api.sumup.com; connect-src 'self' https://*.sumup.com https://*.workers.dev https://embed.sendcloud.sc; frame-src 'self' https://www.google.com https://*.sumup.com https://embed.sendcloud.sc https://servicepoints.sendcloud.sc; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mon Petit Crochet by Oriana · Sacs, paniers et chaînes de téléphone au crochet, faits main</title>
 <meta name="description" content="Je crochète à la main sacs, paniers, chaînes de téléphone et pochettes, au pied du Luberon-Sud. Choisissez votre modèle, votre taille et vos couleurs de fil, commandez en ligne.">
 <meta name="theme-color" content="#F7F2EA">
@@ -10,7 +13,9 @@
 <meta property="og:description" content="Sacs, paniers, chaînes de téléphone : des pièces uniques et douces, que je crochète à la commande dans le coloris de votre choix.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:image" content="https://smartmoov59-tech.github.io/mon-petit-crochet/assets/img/panier-jaune.jpg">
+<meta property="og:image" content="https://smartmoov59-tech.github.io/mon-petit-crochet/assets/img/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:url" content="https://smartmoov59-tech.github.io/mon-petit-crochet/">
 <meta property="og:site_name" content="Mon Petit Crochet by Oriana">
 <meta name="twitter:card" content="summary_large_image">
@@ -26,12 +31,13 @@
   "@type": "Store",
   "name": "Mon Petit Crochet by Oriana",
   "description": "Créatrice de pièces au crochet faites main : sacs, paniers de rangement, chaînes de téléphone et pochettes d'ordinateur, sur commande et personnalisables.",
-  "image": "https://smartmoov59-tech.github.io/mon-petit-crochet/assets/img/panier-jaune.jpg",
+  "image": "https://smartmoov59-tech.github.io/mon-petit-crochet/assets/img/og-cover.jpg",
   "url": "https://smartmoov59-tech.github.io/mon-petit-crochet/",
+  "telephone": "+33650677950",
   "areaServed": "Luberon Sud, Provence-Alpes-Côte d'Azur, France",
   "address": { "@type": "PostalAddress", "addressRegion": "Provence-Alpes-Côte d'Azur", "addressCountry": "FR" },
   "sameAs": ["https://www.instagram.com/mon_petit_crochet_by_oriana/"],
-  "paymentAccepted": "Carte bancaire (lien de paiement SumUp)",
+  "paymentAccepted": "Carte bancaire (SumUp)",
   "priceRange": "15 € - 45 €",
   "makesOffer": [
     { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Panier rond ou ovale au crochet" }, "priceCurrency": "EUR", "price": "15" },
@@ -49,8 +55,34 @@
 <div class="loader" id="loader" aria-hidden="true">
   <div class="loader__strips"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="loader__inner">
-    <svg class="loader__thread" viewBox="0 0 240 90" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-      <path id="loaderPath" d="M6 62c18-48 38-48 48-14s28 30 44-6 30-40 46-8 28 36 44 4 20-26 40-18"/>
+    <svg class="loader__thread" viewBox="0 0 300 130" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <radialGradient id="lbGrad" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#F7D7BF"/><stop offset=".55" stop-color="#DC9A76"/><stop offset="1" stop-color="#A9613F"/></radialGradient>
+        <radialGradient id="lbShade" cx=".35" cy=".28" r=".85"><stop offset=".45" stop-color="#2A140C" stop-opacity="0"/><stop offset="1" stop-color="#2A140C" stop-opacity=".5"/></radialGradient>
+        <linearGradient id="lhGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6D6BC"/><stop offset=".5" stop-color="#D68F66"/><stop offset="1" stop-color="#9C5636"/></linearGradient>
+        <clipPath id="lbClip"><circle cx="46" cy="74" r="30"/></clipPath>
+      </defs>
+      <path id="loaderPath" d="M73 87C92 104 106 62 130 62S160 108 188 96S226 46 252 56S276 70 286 62" stroke="currentColor" stroke-width="2.4"/>
+      <!-- la pelote : elle tourne et rétrécit pendant que le fil se déroule -->
+      <g id="loaderBall">
+        <g id="loaderSpin">
+          <circle cx="46" cy="74" r="30" fill="url(#lbGrad)"/>
+          <g clip-path="url(#lbClip)"><g transform="translate(46 74)" fill="none" stroke-width="2.3">
+            <g stroke="#F6D3B8" opacity=".8"><path d="M-34-27Q0-43 34-27"/><path d="M-34-18Q0-34 34-18"/><path d="M-34-9Q0-25 34-9"/><path d="M-34 0Q0-16 34 0"/><path d="M-34 9Q0-7 34 9"/><path d="M-34 18Q0 2 34 18"/><path d="M-34 27Q0 11 34 27"/></g>
+            <g stroke="#B9714E" opacity=".7" transform="rotate(60)"><path d="M-34-27Q0-43 34-27"/><path d="M-34-18Q0-34 34-18"/><path d="M-34-9Q0-25 34-9"/><path d="M-34 0Q0-16 34 0"/><path d="M-34 9Q0-7 34 9"/><path d="M-34 18Q0 2 34 18"/><path d="M-34 27Q0 11 34 27"/></g>
+            <g stroke="#F6D3B8" opacity=".55" transform="rotate(-60)"><path d="M-34-27Q0-43 34-27"/><path d="M-34-18Q0-34 34-18"/><path d="M-34-9Q0-25 34-9"/><path d="M-34 0Q0-16 34 0"/><path d="M-34 9Q0-7 34 9"/><path d="M-34 18Q0 2 34 18"/><path d="M-34 27Q0 11 34 27"/></g>
+          </g></g>
+        </g>
+        <circle cx="46" cy="74" r="30" fill="url(#lbShade)"/>
+      </g>
+      <!-- le crochet : sa pointe mène le fil, à la fin une petite boucle se forme -->
+      <g id="loaderHook">
+        <g transform="scale(1.05)">
+          <path d="M2 0C2-1.8.5-2.6-1.5-2.5L-4-2.5C-5.5-2.5-6-.6-8-.6C-10-.6-10.5-2.5-12-2.5L-34-2.5C-36-2.5-37-4.2-40-4.2L-56-4.2C-59-4.2-60-2.5-62-2.5L-92-2.5C-97-2.5-97 2.5-92 2.5L-62 2.5C-60 2.5-59 4.2-56 4.2L-40 4.2C-37 4.2-36 2.5-34 2.5L-1.5 2.5C.5 2.5 2 1.8 2 0Z" fill="url(#lhGrad)" stroke="#8C4A2C" stroke-width=".6"/>
+          <path d="M-14-1.6L-90-1.6" stroke="#FFF1E4" stroke-opacity=".55" stroke-width=".9"/>
+          <g transform="translate(-8 -1)"><g id="loaderLoop" transform="scale(0)"><ellipse rx="5.5" ry="4" stroke="currentColor" stroke-width="1.8"/></g></g>
+        </g>
+      </g>
     </svg>
     <p class="loader__title"><span>Mon petit crochet</span></p>
     <p class="loader__sub">by Oriana</p>
@@ -105,7 +137,7 @@
 <!-- ============ HERO ============ -->
 <section class="hero" id="hero" aria-label="Accueil">
   <div class="hero__bg" data-hero-bg>
-    <img class="hero__video" src="assets/img/hero-poster.jpg" alt="" width="1280" height="720" fetchpriority="high" decoding="async">
+    <img class="hero__video" src="assets/img/hero-lac.jpg" alt="" width="1080" height="1922" fetchpriority="high" decoding="async">
     <div class="hero__veil"></div>
   </div>
 
@@ -131,8 +163,8 @@
 <!-- ============ MARQUEE ============ -->
 <div class="marquee" aria-hidden="true" data-marquee>
   <div class="marquee__track">
-    <span>Fait main</span><i></i><span>Pièces uniques</span><i></i><span>23 coloris</span><i></i><span>Sur mesure</span><i></i><span>Luberon Sud</span><i></i><span>Fil ruban</span><i></i>
-    <span>Fait main</span><i></i><span>Pièces uniques</span><i></i><span>23 coloris</span><i></i><span>Sur mesure</span><i></i><span>Luberon Sud</span><i></i><span>Fil ruban</span><i></i>
+    <span>Fait main</span><i></i><span>Pièces uniques</span><i></i><span>26 coloris</span><i></i><span>Sur mesure</span><i></i><span>Luberon Sud</span><i></i><span>Fil t-shirt</span><i></i>
+    <span>Fait main</span><i></i><span>Pièces uniques</span><i></i><span>26 coloris</span><i></i><span>Sur mesure</span><i></i><span>Luberon Sud</span><i></i><span>Fil t-shirt</span><i></i>
   </div>
 </div>
 
@@ -150,7 +182,7 @@
 
     <p class="shop__note" data-reveal>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Paiement par carte via un lien <strong>SumUp</strong> sécurisé. Les coloris dépendent de mes arrivages de fil : je confirme le vôtre avant de commencer.</span>
+      <span>Paiement par carte <strong>SumUp</strong>, sécurisé. Les coloris dépendent de mes arrivages de fil : je confirme le vôtre avant de commencer.</span>
     </p>
   </div>
 </section>
@@ -160,9 +192,9 @@
   <div class="wrap colors__grid">
     <div class="colors__txt">
       <p class="eyebrow" data-reveal>La palette</p>
-      <h2 id="colorsTitle" class="h2" data-split="words">Vingt-trois coloris de fil.</h2>
+      <h2 id="colorsTitle" class="h2" data-split="words">Vingt-six coloris de fil.</h2>
       <p class="lead" data-reveal>Du blanc franc au rose fuchsia, du kaki profond au doré. Touchez une couleur : elle devient le fond de cette page, le temps d’imaginer votre pièce.</p>
-      <p class="small" data-reveal>Fil ruban souple, doux au toucher. Les arrivages changent : je vous confirme le coloris avant de commencer, et je serai ravie de vous tenir informé des prochains arrivages.</p>
+      <p class="small" data-reveal>Fil t-shirt souple, doux au toucher. Les arrivages changent : je vous confirme le coloris avant de commencer, et je serai ravie de vous tenir informé des prochains arrivages.</p>
       <a href="#boutique" class="btn btn--fill magnetic" data-reveal><span>Commencer ma sélection</span></a>
     </div>
     <div class="colors__wall" id="colorWall" role="list" aria-label="Palette des coloris"></div>
@@ -210,7 +242,7 @@
       </article>
       <article class="mpanel">
         <figure class="mpanel__img"><img data-parallax src="assets/img/sac-gris-main.jpg" alt="Sac au crochet mélange de gris et de noir" loading="lazy" width="720" height="1280"></figure>
-        <div class="mpanel__txt"><span class="mpanel__n">02</span><h3>Mélange ou bordure</h3><p>Pour les sacs, un mélange de deux couleurs. Pour les paniers, une bordure dorée ou argentée.</p></div>
+        <div class="mpanel__txt"><span class="mpanel__n">02</span><h3>Mélange ou bordure</h3><p>Pour les sacs, un mélange de deux couleurs. Pour les paniers et les pochettes d’ordinateur, une bordure dorée ou argentée.</p></div>
       </article>
       <article class="mpanel">
         <figure class="mpanel__img"><img data-parallax src="assets/img/sac-bleu-blanc.jpg" alt="Sac au crochet bleu et blanc mélangés sur une rondelle de bois" loading="lazy" width="720" height="1280"></figure>
@@ -227,7 +259,7 @@
 <!-- ============ ATELIER (section pinnée) ============ -->
 <section class="atelier" id="atelier" aria-labelledby="atelierTitle">
   <div class="atelier__pin" data-pin>
-    <img class="atelier__video" src="assets/img/pelotes-etagere.jpg" alt="" loading="lazy" width="640" height="640">
+    <img class="atelier__video" src="assets/img/modeles-fiche.jpg" alt="" loading="lazy" width="720" height="1280">
     <div class="atelier__veil"></div>
     <div class="atelier__stage wrap">
       <div class="atelier__head">
@@ -236,13 +268,13 @@
       </div>
       <ol class="steps">
         <li class="step is-active" data-step="0"><span class="step__n">01</span><h3>Vous choisissez</h3><p>Modèle, taille, une ou deux couleurs. Vous composez votre pièce directement sur le site.</p></li>
-        <li class="step" data-step="1"><span class="step__n">02</span><h3>Je crochète</h3><p>Maille après maille, avec un fil ruban doux, au pied du Luberon. Chaque pièce est unique, jamais deux fois la même.</p></li>
-        <li class="step" data-step="2"><span class="step__n">03</span><h3>Je personnalise</h3><p>Perles, coquillages et étoiles dorés, marguerites brodées ou bordure dorée ou argentée, pour 3 € de plus.</p></li>
-        <li class="step" data-step="3"><span class="step__n">04</span><h3>Vous recevez</h3><p>Une pièce prête à vivre avec vous. Remise ou livraison : on s’accorde ensemble à la confirmation.</p></li>
+        <li class="step" data-step="1"><span class="step__n">02</span><h3>Je crochète</h3><p>Maille après maille, avec un fil t-shirt doux, au pied du Luberon. Chaque pièce est unique, jamais deux fois la même.</p></li>
+        <li class="step" data-step="2"><span class="step__n">03</span><h3>Je personnalise</h3><p>Perles, coquillages et étoiles dorés, marguerites brodées, ou bordure dorée ou argentée (paniers et pochettes), pour 3 € de plus.</p></li>
+        <li class="step" data-step="3"><span class="step__n">04</span><h3>Vous recevez</h3><p>Une pièce prête à vivre avec vous. Livraison en point relais ou remise en main propre : vous choisissez en validant votre commande.</p></li>
       </ol>
       <div class="atelier__photos" aria-hidden="true">
         <img class="aph is-active" src="assets/img/paniers-duo-rose.jpg" alt="" loading="lazy">
-        <img class="aph" src="assets/img/atelier-vert.jpg" alt="" loading="lazy">
+        <img class="aph" src="assets/img/atelier-creation-en-cours.jpg" alt="" loading="lazy">
         <img class="aph" src="assets/img/accessoires-charms.jpg" alt="" loading="lazy">
         <img class="aph" src="assets/img/trio-sacs.jpg" alt="" loading="lazy">
       </div>
@@ -254,7 +286,7 @@
 <!-- ============ CHIFFRES ============ -->
 <section class="numbers" aria-label="Chiffres clés">
   <div class="wrap numbers__grid">
-    <div class="num"><b data-count="23">0</b><span>coloris de fil</span></div>
+    <div class="num"><b data-count="26">0</b><span>coloris de fil</span></div>
     <div class="num"><b data-count="5">0</b><span>formats de paniers</span></div>
     <div class="num"><b data-count="4">0</b><span>modèles pour chaque pièce</span></div>
     <div class="num"><b data-count="100" data-suffix=" %">0</b><span>fait main, par mes mains</span></div>
@@ -268,7 +300,7 @@
     <div class="extras__txt">
       <p class="eyebrow" data-reveal>Détails décoratifs</p>
       <h2 id="extrasTitle" class="h2" data-split="words">Une touche qui change tout.</h2>
-      <p class="lead" data-reveal>Je peux ajouter à votre sac ou à votre panier une finition personnalisée : un seul supplément de <strong>3 €</strong>, quel que soit le détail.</p>
+      <p class="lead" data-reveal>Je peux ajouter à votre sac ou à votre panier une finition personnalisée : un seul supplément de <strong>3 €</strong>, quel que soit le détail. La bordure dorée ou argentée est réservée aux paniers et aux pochettes d’ordinateur.</p>
       <ul class="chips" data-reveal>
         <li>Bordure dorée</li><li>Bordure argentée</li><li>Perles</li><li>Coquillages dorés</li><li>Étoiles de mer</li><li>Marguerites brodées</li>
       </ul>
@@ -287,7 +319,7 @@
       <p class="lead" data-reveal>Pochette pour votre ordinateur ou iPad, sac cabas, couleurs qui ne figurent pas dans la boutique : décrivez votre idée, je vous réponds avec un devis.</p>
       <ul class="ticks" data-reveal>
         <li>Pochette d’ordinateur / iPad à vos dimensions</li>
-        <li>Une ou deux couleurs, finition argentée ou dorée</li>
+        <li>Une ou deux couleurs, bordure argentée ou dorée pour les pochettes</li>
         <li>Sacs et paniers dans des formats uniques</li>
       </ul>
     </div>
@@ -392,7 +424,7 @@
       <details><summary>Mon coloris est-il disponible ?</summary><p>Les coloris dépendent de mes arrivages de fil. Après votre commande, je vous confirme le coloris avant de commencer, ou je vous propose une alternative proche.</p></details>
       <details><summary>Combien coûtent les détails décoratifs ?</summary><p>Un supplément unique de 3 € pour une finition personnalisée : bordure dorée ou argentée, perles, coquillages, étoiles ou marguerites brodées.</p></details>
       <details><summary>Comment payer ?</summary><p>Par carte bancaire, via un lien de paiement SumUp sécurisé. Vous payez directement en ligne depuis le panier, ou je vous envoie le lien au montant exact après confirmation.</p></details>
-      <details><summary>Délais et remise de la pièce ?</summary><p>Je crochète chaque pièce à la main, à la commande. Je vous indique le délai et le mode de remise (livraison ou rencontre) au moment de la confirmation.</p></details>
+      <details><summary>Délais et remise de la pièce ?</summary><p>Je crochète chaque pièce à la main, à la commande. Je vous indique le délai au moment de la confirmation. Vous choisissez en validant votre commande : la livraison en point relais ou locker Mondial Relay <span data-ship-note>(<b data-ship-fee>5 €</b> par commande, quel que soit le poids)</span>, ou la remise en main propre, gratuite.</p></details>
     </div>
   </div>
 </section>
@@ -403,9 +435,9 @@
     <div class="find__txt">
       <p class="eyebrow" data-reveal>Nous trouver</p>
       <h2 id="findTitle" class="h2" data-split="words">Au pied du Luberon-Sud.</h2>
-      <p class="lead" data-reveal>Je crochète dans le Luberon et je vous retrouve sur les marchés nocturnes de La Tour-d’Aigues, en été.</p>
+      <p class="lead" data-reveal>Je crochète dans le Luberon et je vous retrouve sur les marchés nocturnes de Villelaure, en été.</p>
       <dl class="coords" data-reveal>
-        <div><dt>Commandes</dt><dd>Sur ce site, ou en message privé Instagram</dd></div>
+        <div><dt>Commandes</dt><dd>Sur ce site, par SMS ou en message privé Instagram</dd></div>
         <div><dt>Instagram</dt><dd><a class="link" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">@mon_petit_crochet_by_oriana</a></dd></div>
         <div id="coordPhone" hidden><dt>Téléphone</dt><dd><a class="link" id="phoneLink" href="#"></a></dd></div>
         <div id="coordMail" hidden><dt>E-mail</dt><dd><a class="link" id="mailLink" href="#"></a></dd></div>
@@ -414,8 +446,8 @@
       <a class="btn btn--fill magnetic" id="dmBtn" href="https://ig.me/m/mon_petit_crochet_by_oriana" target="_blank" rel="noopener" data-reveal><span>M’écrire sur Instagram</span></a>
     </div>
     <div class="find__map" data-reveal-mask>
-      <iframe title="Carte Google Maps : La Tour-d’Aigues, Luberon" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=La+Tour-d%27Aigues&output=embed"></iframe>
-      <a class="find__open" href="https://www.google.com/maps/search/?api=1&query=La+Tour-d%27Aigues" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>
+      <iframe title="Carte Google Maps : Villelaure, Luberon" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Villelaure%2C+84530%2C+France&output=embed"></iframe>
+      <a class="find__open" href="https://www.google.com/maps/search/?api=1&query=Villelaure%2C+84530%2C+France" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>
     </div>
   </div>
 </section>
@@ -430,11 +462,11 @@
       <div><h3>Boutique</h3><a href="#boutique">Sacs</a><a href="#boutique">Paniers</a><a href="#boutique">Cordons</a><a href="#sur-mesure">Sur devis</a></div>
       <div><h3>L’univers</h3><a href="#couleurs">Couleurs</a><a href="#modeles">Modèles</a><a href="#atelier">Atelier</a><a href="#galerie">Galerie</a></div>
       <div><h3>Suivre</h3><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">Instagram</a><a href="#contact">Nous trouver</a><a href="#infos">Questions</a></div>
-      <div><h3>Paiement</h3><p>Carte bancaire via SumUp, lien de paiement sécurisé.</p></div>
+      <div><h3>Paiement</h3><p>Carte bancaire via SumUp, paiement sécurisé.</p></div>
     </div>
     <div class="footer__legal">
-      <span>© 2026 Mon Petit Crochet by Oriana · Fait main au pied du Luberon</span>
-      <span>Photo d’accueil : Pexels (licence libre) · <button class="linkbtn" id="sumupHelp" type="button">montants SumUp</button></span>
+      <span>© 2026 Mon Petit Crochet by Oriana · Fait main au pied du Luberon · <a class="linkbtn" href="mentions-legales.html">Mentions légales</a></span>
+      <span><button class="linkbtn" id="sumupHelp" type="button">montants SumUp</button></span>
     </div>
   </div>
 </footer>
@@ -490,6 +522,54 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- ============ POP-UP DE NOËL : marchés de décembre (s'affiche 3 s après l'arrivée, voir js/noel.js) ============ -->
+<div class="noel" id="noel" role="dialog" aria-modal="true" aria-labelledby="noelTitle" aria-describedby="noelLead" hidden>
+  <div class="noel__backdrop" data-noel-close></div>
+  <div class="noel__snow" id="noelSnow" aria-hidden="true"></div>
+  <div class="noel__card" id="noelCard" data-lenis-prevent>
+    <svg class="noel__garland" id="noelGarland" viewBox="0 0 520 150" aria-hidden="true" focusable="false"></svg>
+    <button class="noel__close" type="button" data-noel-close aria-label="Fermer la fenêtre">×</button>
+    <div class="noel__body">
+      <p class="noel__eyebrow"><i aria-hidden="true">✦</i> Marchés de Noël <i aria-hidden="true">✦</i></p>
+      <h2 class="noel__title" id="noelTitle">Retrouvons-nous <em>au marché</em> de Noël&nbsp;!</h2>
+      <p class="noel__lead" id="noelLead">Je serai là avec mes sacs, mes paniers et mes chaînes de téléphone crochetés main. Venez les toucher, choisir vos couleurs et trouver un joli cadeau fait main.</p>
+      <ul class="noel__dates">
+        <li data-noel-date="2026-12-06">
+          <span class="noel__cal" aria-hidden="true"><b>déc.</b><strong>6</strong></span>
+          <span class="noel__what">
+            <em>Dimanche 6 décembre</em>
+            <b>Cucuron</b>
+            <small>Au bord de l’étang</small>
+            <a class="noel__map" href="https://www.google.com/maps/search/?api=1&amp;query=%C3%89tang+de+Cucuron%2C+84160+Cucuron" target="_blank" rel="noopener">Voir sur la carte</a>
+          </span>
+        </li>
+        <li data-noel-date="2026-12-19">
+          <span class="noel__cal" aria-hidden="true"><b>déc.</b><strong>19</strong></span>
+          <span class="noel__what">
+            <em>Samedi 19 décembre</em>
+            <b>Pertuis</b>
+            <small>Place Garcin</small>
+            <a class="noel__map" href="https://www.google.com/maps/search/?api=1&amp;query=Place+Garcin%2C+84120+Pertuis" target="_blank" rel="noopener">Voir sur la carte</a>
+          </span>
+        </li>
+      </ul>
+      <p class="noel__sign">À très vite, <span>Oriana</span></p>
+      <div class="noel__cta">
+        <a class="btn btn--fill" href="#boutique" data-noel-close><span>Voir la boutique</span></a>
+        <button class="btn btn--ghost" type="button" data-noel-close><span>Fermer</span></button>
+      </div>
+    </div>
+    <svg class="noel__holly" viewBox="0 0 96 74" aria-hidden="true" focusable="false">
+      <g stroke="#1F4A31" stroke-width="1" stroke-linejoin="round">
+        <g transform="translate(14 56) rotate(-38)"><path d="M0 0C6-6 10-4 14-9C18-5 24-6 27-12C30-6 36-6 40-10C40-4 46-2 50 0C46 4 40 6 40 10C36 6 30 6 27 12C24 6 18 5 14 9C10 4 6 6 0 0Z" fill="#2F6B47"/><path d="M2 0L46 0" stroke="#7FB28A" stroke-width="1.2" fill="none"/></g>
+        <g transform="translate(14 56) rotate(-8)"><path d="M0 0C6-6 10-4 14-9C18-5 24-6 27-12C30-6 36-6 40-10C40-4 46-2 50 0C46 4 40 6 40 10C36 6 30 6 27 12C24 6 18 5 14 9C10 4 6 6 0 0Z" fill="#3B7D55"/><path d="M2 0L46 0" stroke="#8FC29A" stroke-width="1.2" fill="none"/></g>
+      </g>
+      <g stroke="#7E1D17" stroke-width=".8"><circle cx="13" cy="54" r="5.2" fill="#B3382C"/><circle cx="21" cy="58" r="4.8" fill="#C13F32"/><circle cx="12" cy="62" r="4.6" fill="#B3382C"/></g>
+      <g fill="#fff" opacity=".6"><circle cx="11.6" cy="52.4" r="1.3"/><circle cx="19.8" cy="56.6" r="1.2"/><circle cx="10.8" cy="60.6" r="1.1"/></g>
+    </svg>
+  </div>
+</div>
+
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>
 <script src="vendor/lenis.min.js"></script>
@@ -498,8 +578,10 @@
 <script src="js/data.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/viewer3d.js"></script>
+<script src="js/relais.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/motion.js"></script>
+<script src="js/noel.js"></script>
 </body>
 </html>
 
