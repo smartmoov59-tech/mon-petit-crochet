@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.workers.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Mentions légales · Mon Petit Crochet by Oriana</title>
 <meta name="description" content="Mentions légales du site Mon Petit Crochet by Oriana : éditrice du site, hébergement, propriété intellectuelle, données personnelles.">
 <meta name="theme-color" content="#F7F2EA">
@@ -28,7 +28,7 @@
 <main id="contenu" class="legal wrap">
   <p class="eyebrow">Informations légales</p>
   <h1 class="h2 legal__title">Mentions légales</h1>
-  <p class="small">Dernière mise à jour : 10 novembre 2026.</p>
+  <p class="small">Dernière mise à jour : 11 novembre 2026.</p>
 
   <section class="legal__sec" aria-labelledby="l-editrice">
     <h2 id="l-editrice">Éditrice du site</h2>
@@ -37,7 +37,7 @@
       <div><dt>Éditrice</dt><dd>Mme Oriana CROUX, entrepreneur individuel</dd></div>
       <div><dt>SIRET</dt><dd>105 526 826 00018</dd></div>
       <div><dt>Adresse</dt><dd>714 chemin du Marderic<br>84530 Villelaure</dd></div>
-      <div><dt>Téléphone</dt><dd><a class="link" href="tel:0650677950">06 50 67 79 50</a></dd></div>
+      <div><dt>Téléphone</dt><dd><a class="link" id="legalPhone" href="tel:0650677950">06 50 67 79 50</a></dd></div>
       <div data-cfg="email" hidden><dt>E-mail</dt><dd><a class="link" href="#"></a></dd></div>
       <div><dt>Instagram</dt><dd><a class="link" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">@mon_petit_crochet_by_oriana</a></dd></div>
       <div><dt>Activité</dt><dd>Création et vente de pièces au crochet faites main (sacs, paniers, chaînes de téléphone, pochettes d’ordinateur), sur commande.</dd></div>
@@ -59,7 +59,8 @@
     <p>Les pièces sont crochetées à la main, sur commande. Vous composez votre pièce sur le site (modèle, taille, couleurs, détails), puis vous envoyez votre commande à Oriana par Instagram, par SMS ou par e-mail : elle la confirme avec vous (coloris disponibles, délai, remise en main propre ou livraison en point relais) avant de commencer.</p>
     <p data-cfg="shipping" hidden>Frais de livraison : <strong data-fee></strong> par commande pour une livraison en point relais ou locker Mondial Relay, quel que soit le poids de la commande. La remise en main propre est sans frais de livraison.</p>
     <p>Le paiement par carte bancaire est traité par <strong>SumUp</strong> (lien de paiement sécurisé, ou formulaire de paiement SumUp intégré au panier). Ce site ne collecte ni ne conserve aucune donnée bancaire : la carte est saisie dans le formulaire de SumUp.</p>
-    <p data-cfg="payapi" hidden>Pour le paiement dans le panier, un petit service technique hébergé par <strong>Cloudflare, Inc.</strong> (Cloudflare Workers, 101 Townsend Street, San Francisco, CA 94107, États-Unis) crée le paiement chez SumUp : il reçoit seulement le contenu du panier et la référence de commande, jamais vos coordonnées ni votre carte.</p>
+    <p data-cfg="payold" hidden>Pour le paiement dans le panier, un petit service technique hébergé par <strong>Cloudflare, Inc.</strong> (Cloudflare Workers, 101 Townsend Street, San Francisco, CA 94107, États-Unis) crée le paiement chez SumUp : il reçoit seulement le contenu du panier et la référence de commande, jamais vos coordonnées ni votre carte.</p>
+    <p data-cfg="payapi" hidden>Quand vous payez par carte dans le panier, votre commande (articles choisis, prénom, nom, numéro de téléphone, adresse e-mail, point de retrait Mondial Relay et message éventuel) est transmise à un petit service technique hébergé par <strong>Cloudflare, Inc.</strong> (Cloudflare Workers, 101 Townsend Street, San Francisco, CA 94107, États-Unis). Ce service crée le paiement chez SumUp, prépare l’envoi chez <strong>Sendcloud</strong> et envoie vos e-mails (confirmation de commande, numéro de suivi du colis, puis une seule demande d’avis après réception) par l’intermédiaire de <strong>Brevo</strong> (société française, serveurs dans l’Union européenne). Il garde le détail de la commande 120 jours pour suivre votre colis, puis l’efface. Votre carte bancaire n’y passe jamais.</p>
     <p>Les prix, les coloris et les délais sont donnés à titre indicatif : les coloris dépendent des arrivages de fil. Chaque pièce étant faite main, de légères différences avec les photos et les aperçus 3D sont normales.</p>
   </section>
 
@@ -71,11 +72,12 @@
 
   <section class="legal__sec" aria-labelledby="l-donnees">
     <h2 id="l-donnees">Données personnelles et cookies</h2>
-    <p>Ce site n’a pas de serveur de collecte, n’envoie aucun formulaire à un serveur et n’utilise ni outil de mesure d’audience ni cookie publicitaire. Le contenu de votre panier est conservé uniquement dans votre navigateur (stockage local) : vous pouvez l’effacer à tout moment.</p>
-    <p>Quand vous envoyez une commande ou une demande personnalisée, c’est vous qui transmettez votre message (prénom, coordonnées, détails de la pièce) à Mme Oriana CROUX par Instagram, SMS ou e-mail. Ces informations servent uniquement à traiter votre demande et à suivre votre commande ; elles sont conservées le temps nécessaire, y compris pour les obligations comptables.</p>
+    <p data-cfg="noauto">Ce site n’a pas de serveur de collecte, n’envoie aucun formulaire à un serveur et n’utilise ni outil de mesure d’audience ni cookie publicitaire. Le contenu de votre panier est conservé uniquement dans votre navigateur (stockage local) : vous pouvez l’effacer à tout moment.</p>
+    <p data-cfg="payapi" hidden>Ce site n’utilise ni outil de mesure d’audience ni cookie publicitaire. Le contenu de votre panier est conservé dans votre navigateur (stockage local) : vous pouvez l’effacer à tout moment. Quand vous payez par carte, vos informations de commande sont traitées comme indiqué dans « Commandes et paiement » ci-dessus : elles servent uniquement à traiter et livrer votre commande et à vous tenir informé(e), et sont conservées le temps nécessaire, y compris pour les obligations comptables. Les messages de confirmation et de suivi font partie de la vente ; la demande d’avis après réception est unique, et vous pouvez ne plus en recevoir en répondant « STOP » à ce message.</p>
+    <p>Quand vous envoyez une demande personnalisée, ou une commande sans payer par carte dans le panier, c’est vous qui transmettez votre message (prénom, coordonnées, détails de la pièce) à Mme Oriana CROUX par Instagram, SMS ou e-mail. Ces informations servent uniquement à traiter votre demande et à suivre votre commande ; elles sont conservées le temps nécessaire, y compris pour les obligations comptables.</p>
     <p>Conformément au règlement général sur la protection des données (RGPD) et à la loi Informatique et Libertés, vous disposez d’un droit d’accès, de rectification, d’effacement et d’opposition, que vous exercez en contactant Mme Oriana CROUX aux coordonnées ci-dessus. Vous pouvez aussi adresser une réclamation à la <a class="link" href="https://www.cnil.fr" target="_blank" rel="noopener">CNIL</a>.</p>
     <p>Services tiers : le site charge ses polices depuis Google Fonts et affiche une carte Google Maps (rubrique « Nous trouver ») ; votre adresse IP est alors transmise à Google, qui peut déposer des cookies. Les liens vers Instagram (Meta) et SumUp mènent vers des sites tiers soumis à leurs propres conditions. L’hébergeur peut enregistrer des journaux techniques de connexion.</p>
-    <p data-cfg="relay" hidden><strong>Livraison en point relais ou locker.</strong> Si vous choisissez ce mode de remise, la carte des points de retrait est fournie par <strong>Sendcloud</strong> (Pays-Bas). Elle ne se charge que lorsque vous cliquez sur « Voir les points les plus proches » : votre adresse IP et le code postal saisi sont alors transmis à Sendcloud pour afficher les points proches de chez vous. Le point que vous choisissez (nom, adresse, identifiant) est ajouté à votre commande. Pour préparer l’envoi, Mme Oriana CROUX saisit votre nom, votre téléphone (et votre e-mail si vous l’avez indiqué) et ce point de retrait dans Sendcloud, qui les transmet à <strong>Mondial Relay</strong> pour vous prévenir de l’arrivée du colis. Ce site n’envoie ni votre nom ni vos coordonnées à Sendcloud.</p>
+    <p data-cfg="relay" hidden><strong>Livraison en point relais ou locker.</strong> Si vous choisissez ce mode de remise, la carte des points de retrait est fournie par <strong>Sendcloud</strong> (Pays-Bas). Elle ne se charge que lorsque vous cliquez sur « Voir les points les plus proches » : votre adresse IP et le code postal saisi sont alors transmis à Sendcloud pour afficher les points proches de chez vous. Le point que vous choisissez (nom, adresse, identifiant) est ajouté à votre commande. <span data-cfg="noauto">Pour préparer l’envoi, Mme Oriana CROUX saisit votre nom, votre téléphone (et votre e-mail si vous l’avez indiqué) et ce point de retrait dans Sendcloud, qui les transmet à <strong>Mondial Relay</strong> pour vous prévenir de l’arrivée du colis. Ce site n’envoie ni votre nom ni vos coordonnées à Sendcloud.</span><span data-cfg="payapi" hidden>Pour préparer l’envoi, votre nom, votre téléphone, votre e-mail et ce point de retrait sont transmis à Sendcloud par le service technique de la boutique, puis à <strong>Mondial Relay</strong> pour vous prévenir de l’arrivée du colis.</span></p>
   </section>
 
   <section class="legal__sec" aria-labelledby="l-droit">
@@ -87,6 +89,8 @@
 </main>
 
 <script src="js/config.js"></script>
+<script src="js/content.js"></script>
+<script src="js/content-apply.js"></script>
 <script src="js/legal.js"></script>
 </body>
 </html>

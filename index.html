@@ -99,21 +99,21 @@
     <span>Mon Petit Crochet<small>by Oriana</small></span>
   </a>
   <nav class="nav" aria-label="Navigation principale">
-    <a href="#boutique">Boutique</a>
-    <a href="#couleurs">Couleurs</a>
-    <a href="#modeles">Modèles</a>
-    <a href="#atelier">Atelier</a>
-    <a href="#sur-mesure">Demande personnalisée</a>
-    <a href="#contact">Contact</a>
+    <a href="#boutique" data-t="header.a1">Boutique</a>
+    <a href="#couleurs" data-t="header.a2">Couleurs</a>
+    <a href="#modeles" data-t="header.a3">Modèles</a>
+    <a href="#atelier" data-t="header.a4">Atelier</a>
+    <a href="#sur-mesure" data-t="header.a5">Demande personnalisée</a>
+    <a href="#contact" data-t="header.a6">Contact</a>
   </nav>
   <div class="header__actions">
     <a class="insta-btn" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" aria-label="Mon Instagram : @mon_petit_crochet_by_oriana">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
-      <span class="insta-btn__label">Instagram</span>
+      <span class="insta-btn__label" data-t="header.span1">Instagram</span>
     </a>
     <button class="cart-btn" id="cartOpen" aria-label="Ouvrir le panier" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8zM9 8V6.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span class="cart-btn__label">Panier</span><span class="cart-btn__count" id="cartCount">0</span>
+      <span class="cart-btn__label" data-t="header.span2">Panier</span><span class="cart-btn__count" id="cartCount">0</span>
     </button>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
   </div>
@@ -137,20 +137,20 @@
 <!-- ============ HERO ============ -->
 <section class="hero" id="hero" aria-label="Accueil">
   <div class="hero__bg" data-hero-bg>
-    <img class="hero__video" src="assets/img/hero-lac.jpg" alt="" width="1080" height="1922" fetchpriority="high" decoding="async">
+    <img class="hero__video" src="assets/img/hero-lac.jpg" alt="" width="1080" height="1922" fetchpriority="high" decoding="async" data-img="hero.img1">
     <div class="hero__veil"></div>
   </div>
 
   <div class="hero__content" data-hero-mid>
-    <p class="eyebrow hero__eyebrow">Crochet artisanal · Luberon Sud</p>
+    <p class="eyebrow hero__eyebrow" data-t="hero.p1">Crochet artisanal · Luberon Sud</p>
     <h1 class="hero__title" aria-label="Mon Petit Crochet by Oriana">
-      <span class="line"><span data-split="chars">Mon Petit</span></span>
-      <span class="line"><span data-split="chars">Crochet</span><em class="by">by Oriana</em></span>
+      <span class="line"><span data-split="chars" data-t="hero.span1">Mon Petit</span></span>
+      <span class="line"><span data-split="chars" data-t="hero.span2">Crochet</span><em class="by">by Oriana</em></span>
     </h1>
-    <p class="hero__lead">Je crochète sacs, paniers et chaînes de téléphone, un par un, dans les couleurs que vous choisissez.</p>
+    <p class="hero__lead" data-t="hero.p2">Je crochète sacs, paniers et chaînes de téléphone, un par un, dans les couleurs que vous choisissez.</p>
     <div class="hero__cta">
-      <a href="#boutique" class="btn btn--fill magnetic"><span>Choisir ma pièce</span></a>
-      <a href="#sur-mesure" class="btn btn--ghost magnetic"><span>Demande personnalisée</span></a>
+      <a href="#boutique" class="btn btn--fill magnetic"><span data-t="hero.span3">Choisir ma pièce</span></a>
+      <a href="#sur-mesure" class="btn btn--ghost magnetic"><span data-t="hero.span4">Demande personnalisée</span></a>
     </div>
     <a class="hero__insta" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
@@ -168,13 +168,38 @@
   </div>
 </div>
 
+<!-- ============ BANDEAU « EN STOCK » : renvoie vers en-stock.html ; alimenté par l'espace pro d'Oriana (pièces en stock) ; disparaît s'il n'y a aucune pièce en stock ============ -->
+<section class="stockbanner" id="enStock" aria-labelledby="enStockTitle" hidden>
+  <div class="wrap stockbanner__in">
+    <div class="stockbanner__txt">
+      <p class="eyebrow" data-t="enstock.eyebrow">En stock</p>
+      <h2 id="enStockTitle" class="h3" data-t="enstock.titre">Besoin d’une pièce tout de suite ?</h2>
+      <p data-t="enstock.texte">Des sacs, des paniers et des chaînes de téléphone déjà crochetés, prêts à partir : j’expédie sous 24 à 48 h.</p>
+      <a class="btn btn--fill magnetic" href="en-stock.html"><span><span data-t="enstock.bouton">Voir ce qui est en stock</span><b id="enStockCount"></b></span></a>
+    </div>
+    <div class="stockbanner__thumbs" id="enStockThumbs" aria-hidden="true"></div>
+  </div>
+</section>
+
+<!-- ============ NOUVEAUTÉS (sur commande) : alimenté par l'espace pro d'Oriana (js/content.js) ; la section disparaît s'il n'y a rien à montrer. Les pièces en stock sont sur en-stock.html ============ -->
+<section class="section fresh" id="disponibles" aria-labelledby="freshTitle" hidden>
+  <div class="wrap">
+    <header class="section__head">
+      <p class="eyebrow" data-reveal data-t="disponibles.eyebrow">Nouveau</p>
+      <h2 id="freshTitle" class="h2" data-split="words" data-t="disponibles.titre">Mes nouveautés.</h2>
+      <p class="lead" data-reveal data-t="disponibles.intro">Mes dernières créations. Je les crochète à la commande, dans le coloris de votre choix.</p>
+    </header>
+    <div class="grid" id="artGrid"></div>
+  </div>
+</section>
+
 <!-- ============ BOUTIQUE ============ -->
 <section class="section shop" id="boutique" aria-labelledby="shopTitle">
   <div class="wrap">
     <header class="section__head">
-      <p class="eyebrow" data-reveal>La boutique</p>
-      <h2 id="shopTitle" class="h2" data-split="words">Choisissez, colorez, commandez.</h2>
-      <p class="lead" data-reveal>Je crochète chaque pièce à la commande. Choisissez le modèle, la taille et vos couleurs de fil : le prix se met à jour sous vos yeux.</p>
+      <p class="eyebrow" data-reveal data-t="boutique.p1">La boutique</p>
+      <h2 id="shopTitle" class="h2" data-split="words" data-t="boutique.h21">Choisissez, colorez, commandez.</h2>
+      <p class="lead" data-reveal data-t="boutique.p2">Je crochète chaque pièce à la commande. Choisissez le modèle, la taille et vos couleurs de fil : le prix se met à jour sous vos yeux.</p>
     </header>
 
     <div class="filters" role="group" aria-label="Filtrer les pièces" id="filters" data-reveal></div>
@@ -182,7 +207,7 @@
 
     <p class="shop__note" data-reveal>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Paiement par carte <strong>SumUp</strong>, sécurisé. Les coloris dépendent de mes arrivages de fil : je confirme le vôtre avant de commencer.</span>
+      <span data-t="boutique.span1">Paiement par carte <strong>SumUp</strong>, sécurisé. Les coloris dépendent de mes arrivages de fil : je confirme le vôtre avant de commencer.</span>
     </p>
   </div>
 </section>
@@ -191,11 +216,11 @@
 <section class="section colors" id="couleurs" aria-labelledby="colorsTitle">
   <div class="wrap colors__grid">
     <div class="colors__txt">
-      <p class="eyebrow" data-reveal>La palette</p>
-      <h2 id="colorsTitle" class="h2" data-split="words">Vingt-six coloris de fil.</h2>
-      <p class="lead" data-reveal>Du blanc franc au rose fuchsia, du kaki profond au doré. Touchez une couleur : elle devient le fond de cette page, le temps d’imaginer votre pièce.</p>
-      <p class="small" data-reveal>Fil t-shirt souple, doux au toucher. Les arrivages changent : je vous confirme le coloris avant de commencer, et je serai ravie de vous tenir informé des prochains arrivages.</p>
-      <a href="#boutique" class="btn btn--fill magnetic" data-reveal><span>Commencer ma sélection</span></a>
+      <p class="eyebrow" data-reveal data-t="couleurs.p1">La palette</p>
+      <h2 id="colorsTitle" class="h2" data-split="words" data-t="couleurs.h21">Vingt-six coloris de fil.</h2>
+      <p class="lead" data-reveal data-t="couleurs.p2">Du blanc franc au rose fuchsia, du kaki profond au doré. Touchez une couleur : elle devient le fond de cette page, le temps d’imaginer votre pièce.</p>
+      <p class="small" data-reveal data-t="couleurs.p3">Fil t-shirt souple, doux au toucher. Les arrivages changent : je vous confirme le coloris avant de commencer, et je serai ravie de vous tenir informé des prochains arrivages.</p>
+      <a href="#boutique" class="btn btn--fill magnetic" data-reveal><span data-t="couleurs.span1">Commencer ma sélection</span></a>
     </div>
     <div class="colors__wall" id="colorWall" role="list" aria-label="Palette des coloris"></div>
   </div>
@@ -205,23 +230,23 @@
 <section class="insta" id="instagram" aria-labelledby="instaTitle">
   <div class="wrap insta__grid">
     <div class="insta__txt">
-      <p class="eyebrow" data-reveal>Sur Instagram</p>
-      <h2 id="instaTitle" class="h2" data-split="words">Mes créations, jour après jour.</h2>
-      <p class="lead" data-reveal>Chaque nouvelle pièce, chaque arrivage de fil et les coulisses de l’atelier se trouvent sur mon compte. C’est aussi le moyen le plus simple de me poser une question.</p>
+      <p class="eyebrow" data-reveal data-t="instagram.p1">Sur Instagram</p>
+      <h2 id="instaTitle" class="h2" data-split="words" data-t="instagram.h21">Mes créations, jour après jour.</h2>
+      <p class="lead" data-reveal data-t="instagram.p2">Chaque nouvelle pièce, chaque arrivage de fil et les coulisses de l’atelier se trouvent sur mon compte. C’est aussi le moyen le plus simple de me poser une question.</p>
       <a class="insta__handle" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" data-reveal>
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
         <span>@mon_petit_crochet_by_oriana</span>
       </a>
       <div class="insta__cta" data-reveal>
-        <a class="btn btn--fill magnetic" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener"><span>Voir mon Instagram</span></a>
-        <a class="btn btn--ghost magnetic" href="https://ig.me/m/mon_petit_crochet_by_oriana" target="_blank" rel="noopener"><span>M’écrire en message</span></a>
+        <a class="btn btn--fill magnetic" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener"><span data-t="instagram.span1">Voir mon Instagram</span></a>
+        <a class="btn btn--ghost magnetic" href="https://ig.me/m/mon_petit_crochet_by_oriana" target="_blank" rel="noopener"><span data-t="instagram.span2">M’écrire en message</span></a>
       </div>
     </div>
     <ul class="insta__tiles" aria-label="Quelques photos de mon Instagram">
-      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/sac-beige-main.jpg" alt="Sac beige au crochet" loading="lazy" width="720" height="900"></a></li>
-      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/paniers-duo-rose.jpg" alt="Duo de paniers au crochet" loading="lazy" width="720" height="900"></a></li>
-      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/cordon-corail.jpg" alt="Chaîne de téléphone corail" loading="lazy" width="720" height="900"></a></li>
-      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/trio-sacs.jpg" alt="Trio de sacs au crochet" loading="lazy" width="720" height="900"></a></li>
+      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/sac-beige-main.jpg" alt="Sac beige au crochet" loading="lazy" width="720" height="900" data-img="instagram.img1"></a></li>
+      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/paniers-duo-rose.jpg" alt="Duo de paniers au crochet" loading="lazy" width="720" height="900" data-img="instagram.img2"></a></li>
+      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/cordon-corail.jpg" alt="Chaîne de téléphone corail" loading="lazy" width="720" height="900" data-img="instagram.img3"></a></li>
+      <li><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" tabindex="-1"><img src="assets/img/trio-sacs.jpg" alt="Trio de sacs au crochet" loading="lazy" width="720" height="900" data-img="instagram.img4"></a></li>
     </ul>
   </div>
 </section>
@@ -231,26 +256,26 @@
   <div class="models__pin" data-hscroll>
     <div class="models__track">
       <article class="mpanel mpanel--intro">
-        <p class="eyebrow">Les modèles</p>
-        <h2 id="modelsTitle" class="h2">Quatre façons d’habiller votre couleur.</h2>
-        <p class="lead">Un même geste, quatre allures. Du plus simple au plus contrasté, je décline chaque pièce en modèle 1, 2, 3 ou 4.</p>
+        <p class="eyebrow" data-t="modeles.p1">Les modèles</p>
+        <h2 id="modelsTitle" class="h2" data-t="modeles.h21">Quatre façons d’habiller votre couleur.</h2>
+        <p class="lead" data-t="modeles.p2">Un même geste, quatre allures. Du plus simple au plus contrasté, je décline chaque pièce en modèle 1, 2, 3 ou 4.</p>
         <p class="models__hint" aria-hidden="true">Faites défiler <span></span></p>
       </article>
       <article class="mpanel">
-        <figure class="mpanel__img"><img data-parallax src="assets/img/sac-beige.jpg" alt="Sac beige au crochet, modèle simple" loading="lazy" width="720" height="1280"></figure>
-        <div class="mpanel__txt"><span class="mpanel__n">01</span><h3>Simple</h3><p>Une seule couleur, la maille dans toute sa pureté. Le choix de l’évidence.</p></div>
+        <figure class="mpanel__img"><img data-parallax src="assets/img/modele-sac-1-simple.jpg" alt="Sac au crochet beige, modèle simple d’une seule couleur" loading="lazy" width="900" height="1200" data-img="modeles.img1"></figure>
+        <div class="mpanel__txt"><span class="mpanel__n">01</span><h3 data-t="modeles.h31">Simple</h3><p data-t="modeles.p3">Une seule couleur, la maille dans toute sa pureté. Le choix de l’évidence.</p></div>
       </article>
       <article class="mpanel">
-        <figure class="mpanel__img"><img data-parallax src="assets/img/sac-gris-main.jpg" alt="Sac au crochet mélange de gris et de noir" loading="lazy" width="720" height="1280"></figure>
-        <div class="mpanel__txt"><span class="mpanel__n">02</span><h3>Mélange ou bordure</h3><p>Pour les sacs, un mélange de deux couleurs. Pour les paniers et les pochettes d’ordinateur, une bordure dorée ou argentée.</p></div>
+        <figure class="mpanel__img"><img data-parallax src="assets/img/modele-sac-2-melange.jpg" alt="Sac au crochet en mélange de deux couleurs, beige et taupe" loading="lazy" width="900" height="1200" data-img="modeles.img2"></figure>
+        <div class="mpanel__txt"><span class="mpanel__n">02</span><h3 data-t="modeles.h32">Mélange</h3><p data-t="modeles.p4">Pour les sacs, un mélange de deux couleurs.</p></div>
       </article>
       <article class="mpanel">
-        <figure class="mpanel__img"><img data-parallax src="assets/img/sac-bleu-blanc.jpg" alt="Sac au crochet bleu et blanc mélangés sur une rondelle de bois" loading="lazy" width="720" height="1280"></figure>
-        <div class="mpanel__txt"><span class="mpanel__n">03</span><h3>Bicolore ou asymétrique</h3><p>Double fil pour les paniers, trois quarts / un quart pour les sacs : deux couleurs qui se répondent.</p></div>
+        <figure class="mpanel__img"><img data-parallax src="assets/img/modele-sac-3-asymetrique.jpg" alt="Sac au crochet asymétrique : trois quarts beige, un quart taupe" loading="lazy" width="900" height="1200" data-img="modeles.img3"></figure>
+        <div class="mpanel__txt"><span class="mpanel__n">03</span><h3 data-t="modeles.h33">Asymétrique</h3><p data-t="modeles.p5">Double fil pour les paniers, trois quarts / un quart pour les sacs : deux couleurs qui se répondent.</p></div>
       </article>
       <article class="mpanel">
-        <figure class="mpanel__img"><img data-parallax src="assets/img/sac-rouge.jpg" alt="Sac au crochet rose et rouge" loading="lazy" width="720" height="1280"></figure>
-        <div class="mpanel__txt"><span class="mpanel__n">04</span><h3>Haut / bas ou anse</h3><p>Panier asymétrique haut / bas, ou sac avec l’anse d’une couleur et le reste d’une autre. Le plus graphique.</p></div>
+        <figure class="mpanel__img"><img data-parallax src="assets/img/modele-sac-4-anse-coloree.jpg" alt="Sac au crochet beige, avec l’anse et le haut taupe" loading="lazy" width="900" height="1200" data-img="modeles.img4"></figure>
+        <div class="mpanel__txt"><span class="mpanel__n">04</span><h3 data-t="modeles.h34">Anse colorée</h3><p data-t="modeles.p6">Sac avec l’anse d’une couleur, et le reste d’une autre couleur.</p></div>
       </article>
     </div>
   </div>
@@ -259,24 +284,24 @@
 <!-- ============ ATELIER (section pinnée) ============ -->
 <section class="atelier" id="atelier" aria-labelledby="atelierTitle">
   <div class="atelier__pin" data-pin>
-    <img class="atelier__video" src="assets/img/modeles-fiche.jpg" alt="" loading="lazy" width="720" height="1280">
+    <img class="atelier__video" src="assets/img/atelier-fond.jpg" alt="" loading="lazy" width="1920" height="1280" data-img="atelier.img1">
     <div class="atelier__veil"></div>
     <div class="atelier__stage wrap">
       <div class="atelier__head">
-        <p class="eyebrow eyebrow--light">L’atelier</p>
-        <h2 id="atelierTitle" class="h2 h2--light">Du fil à la pièce.</h2>
+        <p class="eyebrow eyebrow--light" data-t="atelier.p1">L’atelier</p>
+        <h2 id="atelierTitle" class="h2 h2--light" data-t="atelier.h21">Du fil à la pièce.</h2>
       </div>
       <ol class="steps">
-        <li class="step is-active" data-step="0"><span class="step__n">01</span><h3>Vous choisissez</h3><p>Modèle, taille, une ou deux couleurs. Vous composez votre pièce directement sur le site.</p></li>
-        <li class="step" data-step="1"><span class="step__n">02</span><h3>Je crochète</h3><p>Maille après maille, avec un fil t-shirt doux, au pied du Luberon. Chaque pièce est unique, jamais deux fois la même.</p></li>
-        <li class="step" data-step="2"><span class="step__n">03</span><h3>Je personnalise</h3><p>Perles, coquillages et étoiles dorés, marguerites brodées, ou bordure dorée ou argentée (paniers et pochettes), pour 3 € de plus.</p></li>
-        <li class="step" data-step="3"><span class="step__n">04</span><h3>Vous recevez</h3><p>Une pièce prête à vivre avec vous. Livraison en point relais ou remise en main propre : vous choisissez en validant votre commande.</p></li>
+        <li class="step is-active" data-step="0"><span class="step__n">01</span><h3 data-t="atelier.h31">Vous choisissez</h3><p data-t="atelier.p2">Modèle, taille, une ou deux couleurs. Vous composez votre pièce directement sur le site.</p></li>
+        <li class="step" data-step="1"><span class="step__n">02</span><h3 data-t="atelier.h32">Je crochète</h3><p data-t="atelier.p3">Maille après maille, avec un fil t-shirt doux, au pied du Luberon. Chaque pièce est unique, jamais deux fois la même.</p></li>
+        <li class="step" data-step="2"><span class="step__n">03</span><h3 data-t="atelier.h33">Je personnalise</h3><p data-t="atelier.p4">Perles, coquillages et étoiles dorés, marguerites brodées, bordure dorée ou argentée (paniers et pochettes) ou chaîne dorée ou argentée de 40 cm (sacs), pour 3 € de plus.</p></li>
+        <li class="step" data-step="3"><span class="step__n">04</span><h3 data-t="atelier.h34">Vous recevez</h3><p data-t="atelier.p5">Une pièce prête à vivre avec vous. Livraison en point relais ou remise en main propre : vous choisissez en validant votre commande.</p></li>
       </ol>
       <div class="atelier__photos" aria-hidden="true">
-        <img class="aph is-active" src="assets/img/paniers-duo-rose.jpg" alt="" loading="lazy">
-        <img class="aph" src="assets/img/atelier-creation-en-cours.jpg" alt="" loading="lazy">
-        <img class="aph" src="assets/img/accessoires-charms.jpg" alt="" loading="lazy">
-        <img class="aph" src="assets/img/trio-sacs.jpg" alt="" loading="lazy">
+        <img class="aph is-active" src="assets/img/paniers-duo-rose.jpg" alt="" loading="lazy" data-img="atelier.img2">
+        <img class="aph" src="assets/img/atelier-creation-en-cours.jpg" alt="" loading="lazy" data-img="atelier.img3">
+        <img class="aph" src="assets/img/accessoires-charms.jpg" alt="" loading="lazy" data-img="atelier.img4">
+        <img class="aph" src="assets/img/trio-sacs.jpg" alt="" loading="lazy" data-img="atelier.img5">
       </div>
       <div class="atelier__dots" aria-hidden="true"><i class="is-active"></i><i></i><i></i><i></i></div>
     </div>
@@ -286,27 +311,27 @@
 <!-- ============ CHIFFRES ============ -->
 <section class="numbers" aria-label="Chiffres clés">
   <div class="wrap numbers__grid">
-    <div class="num"><b data-count="26">0</b><span>coloris de fil</span></div>
-    <div class="num"><b data-count="5">0</b><span>formats de paniers</span></div>
-    <div class="num"><b data-count="4">0</b><span>modèles pour chaque pièce</span></div>
-    <div class="num"><b data-count="100" data-suffix=" %">0</b><span>fait main, par mes mains</span></div>
+    <div class="num"><b data-count="26">0</b><span data-t="numbers.span1">coloris de fil</span></div>
+    <div class="num"><b data-count="5">0</b><span data-t="numbers.span2">formats de paniers</span></div>
+    <div class="num"><b data-count="4">0</b><span data-t="numbers.span3">modèles pour chaque pièce</span></div>
+    <div class="num"><b data-count="100" data-suffix=" %">0</b><span data-t="numbers.span4">fait main, par mes mains</span></div>
   </div>
 </section>
 
 <!-- ============ ACCESSOIRES ============ -->
 <section class="section extras" id="accessoires" aria-labelledby="extrasTitle">
   <div class="wrap extras__grid">
-    <figure class="extras__img extras__img--a" data-reveal-mask><img data-parallax src="assets/img/accessoires-charms.jpg" alt="Charms dorés en forme de coquillages et d’étoiles de mer" loading="lazy" width="716" height="1274"></figure>
+    <figure class="extras__img extras__img--a" data-reveal-mask><img data-parallax src="assets/img/accessoires-charms.jpg" alt="Charms dorés en forme de coquillages et d’étoiles de mer" loading="lazy" width="716" height="1274" data-img="accessoires.img1"></figure>
     <div class="extras__txt">
-      <p class="eyebrow" data-reveal>Détails décoratifs</p>
-      <h2 id="extrasTitle" class="h2" data-split="words">Une touche qui change tout.</h2>
-      <p class="lead" data-reveal>Je peux ajouter à votre sac ou à votre panier une finition personnalisée : un seul supplément de <strong>3 €</strong>, quel que soit le détail. La bordure dorée ou argentée est réservée aux paniers et aux pochettes d’ordinateur.</p>
+      <p class="eyebrow" data-reveal data-t="accessoires.p1">Détails décoratifs</p>
+      <h2 id="extrasTitle" class="h2" data-split="words" data-t="accessoires.h21">Une touche qui change tout.</h2>
+      <p class="lead" data-reveal data-t="accessoires.p2">Je peux ajouter à votre sac ou à votre panier une finition personnalisée : un seul supplément de <strong>3 €</strong>, quel que soit le détail. La bordure dorée ou argentée est réservée aux paniers et aux pochettes d’ordinateur. Pour les sacs, je propose aussi une chaîne de 40 cm, dorée avec les tons chauds ou argentée avec les tons froids, pour les porter à l’épaule plutôt qu’à la main.</p>
       <ul class="chips" data-reveal>
-        <li>Bordure dorée</li><li>Bordure argentée</li><li>Perles</li><li>Coquillages dorés</li><li>Étoiles de mer</li><li>Marguerites brodées</li>
+        <li data-t="accessoires.li1">Bordure dorée</li><li data-t="accessoires.li2">Bordure argentée</li><li data-t="accessoires.li3">Perles</li><li data-t="accessoires.li4">Coquillages dorés</li><li data-t="accessoires.li5">Étoiles de mer</li><li data-t="accessoires.li6">Marguerites brodées</li><li data-t="accessoires.li7">Chaîne de sac, 40 cm</li>
       </ul>
-      <a href="#boutique" class="btn btn--ghost magnetic" data-reveal><span>Ajouter à ma pièce</span></a>
+      <a href="#boutique" class="btn btn--ghost magnetic" data-reveal><span data-t="accessoires.span1">Ajouter à ma pièce</span></a>
     </div>
-    <figure class="extras__img extras__img--b" data-reveal-mask><img data-parallax src="assets/img/accessoires-fleurs.jpg" alt="Marguerites brodées et perles blanches pour personnaliser un sac" loading="lazy" width="719" height="1280"></figure>
+    <figure class="extras__img extras__img--b" data-reveal-mask><img data-parallax src="assets/img/accessoires-fleurs.jpg" alt="Marguerites brodées et perles blanches pour personnaliser un sac" loading="lazy" width="719" height="1280" data-img="accessoires.img2"></figure>
   </div>
 </section>
 
@@ -314,29 +339,29 @@
 <section class="section custom" id="sur-mesure" aria-labelledby="customTitle">
   <div class="wrap custom__grid">
     <div class="custom__intro">
-      <p class="eyebrow" data-reveal>Sur mesure</p>
-      <h2 id="customTitle" class="h2" data-split="words">Une demande personnalisée ?</h2>
-      <p class="lead" data-reveal>Pochette pour votre ordinateur ou iPad, sac cabas, couleurs qui ne figurent pas dans la boutique : décrivez votre idée, je vous réponds avec un devis.</p>
+      <p class="eyebrow" data-reveal data-t="sur-mesure.p1">Sur mesure</p>
+      <h2 id="customTitle" class="h2" data-split="words" data-t="sur-mesure.h21">Une demande personnalisée ?</h2>
+      <p class="lead" data-reveal data-t="sur-mesure.p2">Pochette pour votre ordinateur ou iPad, sac cabas, couleurs qui ne figurent pas dans la boutique : décrivez votre idée, je vous réponds avec un devis.</p>
       <ul class="ticks" data-reveal>
-        <li>Pochette d’ordinateur / iPad à vos dimensions</li>
-        <li>Une ou deux couleurs, bordure argentée ou dorée pour les pochettes</li>
-        <li>Sacs et paniers dans des formats uniques</li>
+        <li data-t="sur-mesure.li1">Pochette d’ordinateur / iPad à vos dimensions</li>
+        <li data-t="sur-mesure.li2">Une ou deux couleurs, bordure argentée ou dorée pour les pochettes</li>
+        <li data-t="sur-mesure.li3">Sacs et paniers dans des formats uniques</li>
       </ul>
     </div>
 
     <div class="custom__viewer" id="customViewerCard">
       <div class="custom__stage" id="customViewer"></div>
       <div class="custom__fallback" id="customFallback" hidden></div>
-      <span class="custom__chip">Aperçu en 3D</span>
+      <span class="custom__chip" data-t="sur-mesure.span1">Aperçu en 3D</span>
       <span class="custom__hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M7 8l-3 4 3 4M17 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Faites-la tourner</span>
       <p class="custom__caption" id="customCaption" aria-live="polite">Choisissez une couleur : la pièce se remplit du fil.</p>
     </div>
 
     <form class="form" id="customForm" novalidate>
       <fieldset>
-        <legend class="sr-only">Votre demande</legend>
+        <legend class="sr-only" data-t="sur-mesure.legend1">Votre demande</legend>
         <div class="field">
-          <label for="cType">Type de pièce</label>
+          <label for="cType" data-t="sur-mesure.label1">Type de pièce</label>
           <select id="cType" name="type" required>
             <option value="">Choisir…</option>
             <option>Pochette d’ordinateur / iPad</option>
@@ -349,7 +374,7 @@
           <span class="err" data-err="type"></span>
         </div>
         <div class="field">
-          <label for="cDims">Dimensions ou appareil</label>
+          <label for="cDims" data-t="sur-mesure.label2">Dimensions ou appareil</label>
           <input id="cDims" name="dims" type="text" placeholder="Ex. MacBook Air 13″ ou 35 × 25 cm">
         </div>
         <div class="field">
@@ -366,21 +391,22 @@
           </div>
         </div>
         <div class="field">
-          <label for="cFinish">Finition</label>
+          <label for="cFinish" data-t="sur-mesure.label3">Finition</label>
           <select id="cFinish" name="finish">
-            <option>Sans détail</option><option data-swatch="linear-gradient(135deg,#f3e2b3 0%,#c9ab6e 35%,#f6ebc8 55%,#a98a4e 100%)">Bordure dorée</option><option data-swatch="linear-gradient(135deg,#f4f4f6 0%,#b9b9bc 35%,#ffffff 55%,#8e8e93 100%)">Bordure argentée</option><option>Perles</option><option>Coquillages & étoiles dorés</option><option>Marguerites brodées</option>
+            <option>Sans détail</option><option data-swatch="linear-gradient(135deg,#f3e2b3 0%,#c9ab6e 35%,#f6ebc8 55%,#a98a4e 100%)">Bordure dorée</option><option data-swatch="linear-gradient(135deg,#f4f4f6 0%,#b9b9bc 35%,#ffffff 55%,#8e8e93 100%)">Bordure argentée</option><option>Perles</option><option>Coquillages & étoiles dorés</option><option>Marguerites brodées</option><option data-swatch="linear-gradient(135deg,#f3e2b3 0%,#c9ab6e 35%,#f6ebc8 55%,#a98a4e 100%)">Chaîne dorée (40 cm)</option><option data-swatch="linear-gradient(135deg,#f4f4f6 0%,#b9b9bc 35%,#ffffff 55%,#8e8e93 100%)">Chaîne argentée (40 cm)</option>
           </select>
+          <p class="small" id="cChainNote" style="margin:.5rem 0 0" hidden></p>
         </div>
         <div class="field">
-          <label for="cMsg">Votre idée en quelques mots</label>
+          <label for="cMsg" data-t="sur-mesure.label4">Votre idée en quelques mots</label>
           <textarea id="cMsg" name="msg" rows="4" placeholder="Pour qui, quel usage, quelle ambiance…"></textarea>
         </div>
         <div class="field two">
-          <div><label for="cName">Prénom</label><input id="cName" name="name" type="text" autocomplete="given-name" required><span class="err" data-err="name"></span></div>
-          <div><label for="cContact">Téléphone, e-mail ou @Instagram</label><input id="cContact" name="contact" type="text" autocomplete="off" required><span class="err" data-err="contact"></span></div>
+          <div><label for="cName" data-t="sur-mesure.label5">Prénom</label><input id="cName" name="name" type="text" autocomplete="given-name" required><span class="err" data-err="name"></span></div>
+          <div><label for="cContact" data-t="sur-mesure.label6">Téléphone, e-mail ou @Instagram</label><input id="cContact" name="contact" type="text" autocomplete="off" required><span class="err" data-err="contact"></span></div>
         </div>
       </fieldset>
-      <button type="submit" class="btn btn--fill magnetic"><span>M’envoyer ma demande</span></button>
+      <button type="submit" class="btn btn--fill magnetic"><span data-t="sur-mesure.span2">M’envoyer ma demande</span></button>
       <p class="small form__hint">Votre demande est préparée ici, puis vous me l’envoyez par message (Instagram<span id="customAlt"></span>). Pensez à y joindre vos photos d’inspiration.</p>
       <div class="sent" id="customSent" role="status" aria-live="polite" hidden></div>
     </form>
@@ -392,10 +418,10 @@
   <div class="wrap">
     <header class="section__head section__head--row">
       <div>
-        <p class="eyebrow" data-reveal>Galerie</p>
-        <h2 id="galTitle" class="h2" data-split="words">Maille après maille.</h2>
+        <p class="eyebrow" data-reveal data-t="galerie.p1">Galerie</p>
+        <h2 id="galTitle" class="h2" data-split="words" data-t="galerie.h21">Maille après maille.</h2>
       </div>
-      <a class="link" data-reveal href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">Voir mon Instagram</a>
+      <a class="link" data-reveal href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" data-t="galerie.a1">Voir mon Instagram</a>
     </header>
     <div class="gal" id="gal"></div>
   </div>
@@ -405,8 +431,8 @@
 <section class="section reviews" id="avis" aria-labelledby="revTitle">
   <div class="wrap">
     <header class="section__head">
-      <p class="eyebrow" data-reveal>Retours clientes</p>
-      <h2 id="revTitle" class="h2" data-split="words">Elles les emmènent partout.</h2>
+      <p class="eyebrow" data-reveal data-t="avis.p1">Retours clientes</p>
+      <h2 id="revTitle" class="h2" data-split="words" data-t="avis.h21">Elles les emmènent partout.</h2>
     </header>
     <div class="rev" id="rev" role="list" tabindex="0" aria-label="Retours de clientes, faire défiler horizontalement"></div>
   </div>
@@ -416,15 +442,15 @@
 <section class="section faq" id="infos" aria-labelledby="faqTitle">
   <div class="wrap faq__grid">
     <div>
-      <p class="eyebrow" data-reveal>Bon à savoir</p>
-      <h2 id="faqTitle" class="h2" data-split="words">Vos questions.</h2>
+      <p class="eyebrow" data-reveal data-t="infos.p1">Bon à savoir</p>
+      <h2 id="faqTitle" class="h2" data-split="words" data-t="infos.h21">Vos questions.</h2>
     </div>
     <div class="faq__list" data-reveal>
-      <details><summary>Comment commander ?</summary><p>Choisissez une pièce dans la boutique, composez-la (modèle, taille, couleurs, finition) puis validez votre panier. Pour une pièce hors catalogue, utilisez la demande personnalisée.</p></details>
-      <details><summary>Mon coloris est-il disponible ?</summary><p>Les coloris dépendent de mes arrivages de fil. Après votre commande, je vous confirme le coloris avant de commencer, ou je vous propose une alternative proche.</p></details>
-      <details><summary>Combien coûtent les détails décoratifs ?</summary><p>Un supplément unique de 3 € pour une finition personnalisée : bordure dorée ou argentée, perles, coquillages, étoiles ou marguerites brodées.</p></details>
-      <details><summary>Comment payer ?</summary><p>Par carte bancaire, via un lien de paiement SumUp sécurisé. Vous payez directement en ligne depuis le panier, ou je vous envoie le lien au montant exact après confirmation.</p></details>
-      <details><summary>Délais et remise de la pièce ?</summary><p>Je crochète chaque pièce à la main, à la commande. Je vous indique le délai au moment de la confirmation. Vous choisissez en validant votre commande : la livraison en point relais ou locker Mondial Relay <span data-ship-note>(<b data-ship-fee>5 €</b> par commande, quel que soit le poids)</span>, ou la remise en main propre, gratuite.</p></details>
+      <details><summary data-t="infos.summary1">Comment commander ?</summary><p data-t="infos.p2">Choisissez une pièce dans la boutique, composez-la (modèle, taille, couleurs, finition) puis validez votre panier. Pour une pièce hors catalogue, utilisez la demande personnalisée.</p></details>
+      <details><summary data-t="infos.summary2">Mon coloris est-il disponible ?</summary><p data-t="infos.p3">Les coloris dépendent de mes arrivages de fil. Après votre commande, je vous confirme le coloris avant de commencer, ou je vous propose une alternative proche.</p></details>
+      <details><summary data-t="infos.summary3">Combien coûtent les détails décoratifs ?</summary><p data-t="infos.p4">Un supplément unique de 3 € pour une finition personnalisée : bordure dorée ou argentée (paniers et pochettes), chaîne dorée ou argentée de 40 cm (sacs, pour les porter à l’épaule), perles, coquillages, étoiles ou marguerites brodées. La chaîne dorée va avec les tons chauds, l’argentée avec les tons froids.</p></details>
+      <details><summary data-t="infos.summary4">Comment payer ?</summary><p data-t="infos.p5">Par carte bancaire, via un lien de paiement SumUp sécurisé. Vous payez directement en ligne depuis le panier, ou je vous envoie le lien au montant exact après confirmation.</p></details>
+      <details><summary data-t="infos.summary5">Délais et remise de la pièce ?</summary><p><span data-t="infos.delais1">Je crochète chaque pièce à la main, à la commande. Je vous indique le délai au moment de la confirmation. Vous choisissez en validant votre commande : la livraison en point relais ou locker Mondial Relay</span> <span data-ship-note>(<b data-ship-fee>5 €</b> par commande, quel que soit le poids)</span><span data-t="infos.delais2">, ou la remise en main propre, gratuite.</span></p></details>
     </div>
   </div>
 </section>
@@ -433,21 +459,24 @@
 <section class="section find" id="contact" aria-labelledby="findTitle">
   <div class="wrap find__grid">
     <div class="find__txt">
-      <p class="eyebrow" data-reveal>Nous trouver</p>
-      <h2 id="findTitle" class="h2" data-split="words">Au pied du Luberon-Sud.</h2>
-      <p class="lead" data-reveal>Je crochète dans le Luberon et je vous retrouve sur les marchés nocturnes de Villelaure, en été.</p>
+      <p class="eyebrow" data-reveal data-t="contact.p1">Nous trouver</p>
+      <h2 id="findTitle" class="h2" data-split="words" data-t="contact.h21">Au pied du Luberon-Sud.</h2>
+      <p class="lead" data-reveal data-t="contact.p2">Je crochète dans le Luberon et je vous retrouve sur les marchés nocturnes de Villelaure, en été.</p>
       <dl class="coords" data-reveal>
-        <div><dt>Commandes</dt><dd>Sur ce site, par SMS ou en message privé Instagram</dd></div>
-        <div><dt>Instagram</dt><dd><a class="link" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">@mon_petit_crochet_by_oriana</a></dd></div>
-        <div id="coordPhone" hidden><dt>Téléphone</dt><dd><a class="link" id="phoneLink" href="#"></a></dd></div>
-        <div id="coordMail" hidden><dt>E-mail</dt><dd><a class="link" id="mailLink" href="#"></a></dd></div>
-        <div><dt>Horaires</dt><dd>Je réponds dès que je pose mon crochet : le plus simple est de commander sur le site</dd></div>
+        <div><dt data-t="contact.dt1">Commandes</dt><dd data-t="contact.dd1">Sur ce site, par SMS, par e-mail ou en message privé Instagram</dd></div>
+        <div><dt data-t="contact.dt2">Instagram</dt><dd><a class="link" href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">@mon_petit_crochet_by_oriana</a></dd></div>
+        <div id="coordPhone" hidden><dt data-t="contact.dt3">Téléphone</dt><dd><a class="link" id="phoneLink" href="#"></a></dd></div>
+        <div id="coordMail" hidden><dt data-t="contact.dt4">E-mail</dt><dd><a class="link" id="mailLink" href="#"></a></dd></div>
+        <div><dt data-t="contact.dt5">Horaires</dt><dd data-t="contact.dd2">Je réponds dès que je pose mon crochet : le plus simple est de commander sur le site</dd></div>
       </dl>
-      <a class="btn btn--fill magnetic" id="dmBtn" href="https://ig.me/m/mon_petit_crochet_by_oriana" target="_blank" rel="noopener" data-reveal><span>M’écrire sur Instagram</span></a>
+      <div class="find__cta" data-reveal>
+        <a class="btn btn--fill magnetic" id="dmBtn" href="https://ig.me/m/mon_petit_crochet_by_oriana" target="_blank" rel="noopener"><span data-t="contact.span1">M’écrire sur Instagram</span></a>
+        <a class="btn btn--ghost magnetic" id="mailBtn" href="#" hidden><span data-t="contact.span2">M’écrire par e-mail</span></a>
+      </div>
     </div>
     <div class="find__map" data-reveal-mask>
       <iframe title="Carte Google Maps : Villelaure, Luberon" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Villelaure%2C+84530%2C+France&output=embed"></iframe>
-      <a class="find__open" href="https://www.google.com/maps/search/?api=1&query=Villelaure%2C+84530%2C+France" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>
+      <a class="find__open" href="https://www.google.com/maps/search/?api=1&query=Villelaure%2C+84530%2C+France" target="_blank" rel="noopener" data-t="contact.a1">Ouvrir dans Google Maps</a>
     </div>
   </div>
 </section>
@@ -459,13 +488,13 @@
   <div class="wrap">
     <p class="footer__big" aria-hidden="true"><span>Mon Petit</span><span>Crochet</span></p>
     <div class="footer__cols">
-      <div><h3>Boutique</h3><a href="#boutique">Sacs</a><a href="#boutique">Paniers</a><a href="#boutique">Cordons</a><a href="#sur-mesure">Sur devis</a></div>
-      <div><h3>L’univers</h3><a href="#couleurs">Couleurs</a><a href="#modeles">Modèles</a><a href="#atelier">Atelier</a><a href="#galerie">Galerie</a></div>
-      <div><h3>Suivre</h3><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener">Instagram</a><a href="#contact">Nous trouver</a><a href="#infos">Questions</a></div>
-      <div><h3>Paiement</h3><p>Carte bancaire via SumUp, paiement sécurisé.</p></div>
+      <div><h3 data-t="footer.h31">Boutique</h3><a href="#boutique" data-t="footer.a1">Sacs</a><a href="#boutique" data-t="footer.a2">Paniers</a><a href="#boutique" data-t="footer.a3">Cordons</a><a href="#sur-mesure" data-t="footer.a4">Sur devis</a><a href="en-stock.html" data-t="footer.a13">En stock (24 à 48 h)</a></div>
+      <div><h3 data-t="footer.h32">L’univers</h3><a href="#couleurs" data-t="footer.a5">Couleurs</a><a href="#modeles" data-t="footer.a6">Modèles</a><a href="#atelier" data-t="footer.a7">Atelier</a><a href="#galerie" data-t="footer.a8">Galerie</a></div>
+      <div><h3 data-t="footer.h33">Suivre</h3><a href="https://www.instagram.com/mon_petit_crochet_by_oriana/" target="_blank" rel="noopener" data-t="footer.a9">Instagram</a><a href="#contact" data-t="footer.a10">Nous trouver</a><a href="#infos" data-t="footer.a11">Questions</a></div>
+      <div><h3 data-t="footer.h34">Paiement</h3><p data-t="footer.p1">Carte bancaire via SumUp, paiement sécurisé.</p></div>
     </div>
     <div class="footer__legal">
-      <span>© 2026 Mon Petit Crochet by Oriana · Fait main au pied du Luberon · <a class="linkbtn" href="mentions-legales.html">Mentions légales</a></span>
+      <span>© 2026 Mon Petit Crochet by Oriana · Fait main au pied du Luberon · <a class="linkbtn" href="mentions-legales.html" data-t="footer.a12">Mentions légales</a></span>
       <span><button class="linkbtn" id="sumupHelp" type="button">montants SumUp</button></span>
     </div>
   </div>
@@ -503,6 +532,30 @@
         </div>
         <div class="total"><span>Total</span><b id="mTotal">0 €</b></div>
         <button type="button" class="btn btn--fill magnetic" id="mAdd"><span>Ajouter au panier</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FICHE D'UNE NOUVEAUTÉ OU D'UNE PIÈCE DISPONIBLE ============ -->
+<div class="modal" id="artModal" role="dialog" aria-modal="true" aria-labelledby="amTitle" hidden>
+  <div class="modal__backdrop" data-am-close></div>
+  <div class="modal__panel" id="artPanel" data-lenis-prevent>
+    <button class="modal__close" data-am-close aria-label="Fermer">×</button>
+    <div class="modal__media" data-lenis-prevent>
+      <div class="artmain" id="amMain"></div>
+      <div class="thumbs" id="amThumbs"></div>
+    </div>
+    <div class="modal__body">
+      <div class="modal__scroll" data-lenis-prevent>
+        <p class="eyebrow" id="amBadge"></p>
+        <h2 class="h3" id="amTitle"></h2>
+        <p class="modal__desc" id="amDesc"></p>
+        <p class="small" id="amDetails"></p>
+      </div>
+      <div class="modal__foot">
+        <div class="total"><span>Prix</span><b id="amPrice"></b></div>
+        <button type="button" class="btn btn--fill magnetic" id="amAdd"><span>Ajouter au panier</span></button>
       </div>
     </div>
   </div>
@@ -576,6 +629,8 @@
 <script src="vendor/three.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
+<script src="js/content.js"></script>
+<script src="js/content-apply.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/viewer3d.js"></script>
 <script src="js/relais.js"></script>
