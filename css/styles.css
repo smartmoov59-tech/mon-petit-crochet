@@ -379,8 +379,6 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
 .faq__list details p { padding-top: .8rem; color: var(--muted); max-width: 40rem; }
 
 /* ---------- Nouveautés et pièces disponibles (articles d'Oriana, espace pro) ---------- */
-.fresh { background: var(--linen); }
-.fresh[hidden] { display: none; }
 .card--art .badges { position: absolute; left: 1rem; top: 1rem; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; }
 .card--art .badge { position: static; }
 .card--art .badge--new { background: var(--accent); color: var(--ivory); }
