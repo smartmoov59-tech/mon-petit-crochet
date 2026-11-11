@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Sécurité (ne pas modifier) : la page n'exécute que ses propres scripts, n'a aucun style en ligne et ne parle qu'à son propre site et au serveur de l'espace pro. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https://*.workers.dev; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#F7F2EA">
+<title>Espace pro</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="pro.css">
+</head>
+<body>
+<noscript><p class="noscript">Cet espace a besoin de JavaScript pour fonctionner. Activez-le dans votre navigateur, puis rechargez la page.</p></noscript>
+
+<!-- ============ ESPACE DE TRAVAIL (affiché après la connexion) ============ -->
+<div id="app" hidden>
+  <a class="skip" href="#main">Aller au contenu</a>
+
+  <header class="top">
+    <div class="top__in">
+      <p class="brand">
+        <svg class="brand__logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="30" fill="currentColor"/><path d="M16 38c6-14 14-14 20-6s10 6 12-6" fill="none" stroke="#F7F2EA" stroke-width="4" stroke-linecap="round"/></svg>
+        <span class="brand__name">Espace pro</span>
+      </p>
+
+      <!-- Navigation : barre du bas sur téléphone, onglets en haut sur ordinateur -->
+      <nav class="tabs" id="tabs" aria-label="Menu principal">
+        <button type="button" class="tab" data-view="articles">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg>
+          <span class="tab__txt">Articles</span>
+        </button>
+        <button type="button" class="tab" data-view="boutique">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="tab__txt">Boutique</span>
+        </button>
+        <button type="button" class="tab" data-view="textes">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+          <span class="tab__txt">Textes</span>
+        </button>
+        <button type="button" class="tab" data-view="photos">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M8.5 7.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span class="tab__txt">Photos</span>
+        </button>
+        <button type="button" class="tab" data-view="livraison">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><path d="M5.5 16a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/><path d="M18.5 16a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+          <span class="tab__txt"><span class="tab__long">Livraison et contact</span><span class="tab__short">Livraison</span></span>
+        </button>
+        <button type="button" class="tab" data-view="historique">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 6v6l4 2"/></svg>
+          <span class="tab__txt">Historique</span>
+        </button>
+      </nav>
+
+      <div class="top__actions">
+        <a class="btn btn--ghost btn--sm" id="siteLink" href="../" target="_blank" rel="noopener">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+          <span>Voir mon site</span>
+        </a>
+        <button type="button" class="btn btn--ghost btn--sm" id="logoutBtn">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span>Se déconnecter</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="main" tabindex="-1"></main>
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+
+  <!-- Bas de l'écran : messages, état de la mise en ligne, puis la barre « Publier » (au-dessus de la navigation sur téléphone) -->
+  <div class="dock" id="dock">
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+    <div id="banner" class="banner" hidden>
+      <p class="banner__txt"><strong id="bannerHead"></strong> <span id="bannerBody"></span> <a id="bannerLink" class="banner__link" href="../" target="_blank" rel="noopener" hidden>Voir mon site</a></p>
+      <button type="button" class="iconbtn" id="bannerClose" aria-label="Fermer ce message">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="pubbar" id="pubbar">
+      <div class="pubbar__txt">
+        <p class="pubbar__count" id="pubCount">Aucune modification à publier</p>
+        <button type="button" class="linkbtn" id="cancelBtn" hidden>Annuler mes changements</button>
+      </div>
+      <button type="button" class="btn btn--accent pubbar__btn" id="publishBtn" disabled>Publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fenêtres (formulaire d'article, confirmations) : construites par pro.js -->
+<div id="overlays"></div>
+
+<!-- ============ CONNEXION ============ -->
+<section id="login" class="login" aria-labelledby="loginTitle">
+  <div class="login__card">
+    <svg class="login__logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="30" fill="currentColor"/><path d="M16 38c6-14 14-14 20-6s10 6 12-6" fill="none" stroke="#F7F2EA" stroke-width="4" stroke-linecap="round"/></svg>
+    <h1 id="loginTitle" class="login__title">Espace pro</h1>
+    <p class="login__lead">Connectez-vous pour modifier votre site.</p>
+    <p id="loginNote" class="notice" hidden></p>
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label class="field__label" for="loginUser">Identifiant</label>
+        <input class="input" id="loginUser" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next">
+      </div>
+      <div class="field">
+        <label class="field__label" for="loginPass">Mot de passe</label>
+        <input class="input" id="loginPass" name="password" type="password" autocomplete="current-password" enterkeyhint="go">
+      </div>
+      <div class="field" id="codeField" hidden>
+        <label class="field__label" for="loginCode">Code à 6 chiffres</label>
+        <input class="input" id="loginCode" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-describedby="loginCodeHint" enterkeyhint="go">
+        <p class="field__hint" id="loginCodeHint">Le code affiché dans l’application d’authentification de votre téléphone.</p>
+      </div>
+      <p id="loginMsg" class="field__err login__msg" role="alert"></p>
+      <button type="submit" id="loginBtn" class="btn btn--primary btn--block btn--big">Se connecter</button>
+    </form>
+  </div>
+</section>
+
+<script src="pro-config.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/data.js"></script>
+<script src="pro.js"></script>
+</body>
+</html>
