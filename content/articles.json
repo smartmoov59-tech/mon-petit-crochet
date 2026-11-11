@@ -15,6 +15,21 @@
     "qty": 1
   },
   {
+    "id": "a-mwcr3bmu-e89",
+    "name": "fzerfez",
+    "price": 0.5,
+    "kind": "dispo",
+    "desc": "",
+    "details": "",
+    "photos": [
+      "assets/uploads/202611/9bd1ed1c185e.jpg"
+    ],
+    "isNew": true,
+    "hidden": false,
+    "cat": "sacs",
+    "qty": 1
+  },
+  {
     "id": "a-mwcp0ye9-20j",
     "name": "gregzrthgzre",
     "price": 56,
