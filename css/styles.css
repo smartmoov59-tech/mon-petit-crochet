@@ -378,10 +378,28 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
 .faq__list details[open] summary::after { transform: rotate(45deg); }
 .faq__list details p { padding-top: .8rem; color: var(--muted); max-width: 40rem; }
 
+/* ---------- Nouveautés et pièces disponibles (articles d'Oriana, espace pro) ---------- */
+.fresh { background: var(--linen); }
+.fresh[hidden] { display: none; }
+.card--art .badges { position: absolute; left: 1rem; top: 1rem; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; }
+.card--art .badge { position: static; }
+.card--art .badge--new { background: var(--accent); color: var(--ivory); }
+.card--art .badge--sold { background: var(--cocoa); color: var(--ivory); }
+.card--art.is-sold .card__photo { filter: grayscale(.85); opacity: .72; }
+.card--art { cursor: pointer; }
+.artmain { aspect-ratio: 4 / 5; background: #fff; border-radius: 22px; overflow: hidden; display: grid; place-items: center; }
+.artmain img { width: 100%; height: 100%; object-fit: contain; }
+.paused { margin: 0; padding: .9rem 1rem; border-radius: 14px; background: var(--linen); border: 1px solid var(--sand); text-align: center; font-size: .95rem; }
+
+/* ---------- Annonce (texte libre d'Oriana, espace pro) ---------- */
+.announce { display: inline-block; max-width: 34rem; margin: 0 0 1.2rem; padding: .55rem 1.1rem; border: 1px solid currentColor; border-radius: 999px; font-size: .92rem; line-height: 1.35; }
+
 /* ---------- Contact ---------- */
 .find { background: var(--linen); }
 .find__grid { display: grid; gap: clamp(2rem, 5vw, 4rem); align-items: stretch; }
 @media (min-width: 960px) { .find__grid { grid-template-columns: 1fr 1fr; } }
+.find__cta { display: flex; flex-wrap: wrap; gap: .8rem; }   /* « M’écrire sur Instagram » et, si l'e-mail est renseigné, « M’écrire par e-mail » */
+.find__cta [hidden] { display: none; }
 .coords { display: grid; gap: 1rem; margin: 2rem 0; }
 .coords > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sand); }
 .coords dd { min-width: 0; overflow-wrap: anywhere; }
@@ -759,5 +777,48 @@ textarea.recap { width: 100%; font: inherit; font-size: .85rem; border: 1px soli
 .size[aria-pressed="true"] .sh { fill: var(--accent-soft); stroke: var(--accent); }
 .sizes__note { font-size: .84rem; color: var(--muted); margin-top: .6rem; }
 
+/* ==========================================================================
+   « EN STOCK » : page en-stock.html (pièces prêtes à partir, expédiées sous 24 à 48 h) et bandeau de l'accueil
+   ========================================================================== */
+.page-stock { background: var(--ivory); }
+.header__link { display: inline-flex; align-items: center; padding: .6rem 1rem; border: 1px solid currentColor; border-radius: 999px; font-weight: 500; font-size: .92rem; white-space: nowrap; transition: background-color .3s, color .3s, border-color .3s; }
+.header__link:hover { background: var(--cocoa); color: var(--ivory); border-color: var(--cocoa); }
+@media (max-width: 760px) { .header__long { display: none; } }
+@media (max-width: 460px) { .insta-btn { display: none; } .header { gap: .6rem; } }
 
+.stockhero { padding: clamp(7.5rem, 14vw, 10.5rem) 0 clamp(2rem, 5vw, 3.5rem); background: var(--linen); }
+.stockhero .h2 { max-width: 15ch; }
+.stockfacts { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 2rem; }
+.stockfacts li { display: inline-flex; align-items: center; gap: .6rem; padding: .6rem 1.05rem; border: 1px solid var(--sand); border-radius: 999px; background: #fff; font-size: .94rem; }
+.stockfacts li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.stockfacts li[hidden] { display: none; }
 
+.stock { padding-block: clamp(2rem, 5vw, 4rem) clamp(4rem, 9vw, 7rem); }
+.stock__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem 1.5rem; margin-bottom: 1.8rem; }
+.stock__bar .filters { margin-bottom: 0; }
+.stock__count { color: var(--muted); font-size: .95rem; }
+.chip-btn small { opacity: .6; margin-left: .3rem; font-weight: 400; font-size: .8em; }
+.card__ship { display: flex; align-items: center; gap: .5rem; color: var(--olive); font-size: .88rem; font-weight: 500; }
+.card__ship::before { content: ''; width: 18px; height: 18px; flex: none; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 3h15v13H1z'/%3E%3Cpath d='M16 8h4l3 3v5h-7z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 3h15v13H1z'/%3E%3Cpath d='M16 8h4l3 3v5h-7z'/%3E%3Ccircle cx='5.5' cy='18.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+.stockempty { text-align: center; padding: clamp(2.5rem, 7vw, 5rem) 1rem; }
+.stockempty .lead { margin-inline: auto; }
+.stockcta { margin-top: clamp(3rem, 7vw, 5rem); padding: clamp(1.6rem, 4vw, 2.8rem); border-radius: var(--radius); background: var(--cocoa); color: var(--ivory); display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; align-items: center; justify-content: space-between; }
+.stockcta p { color: color-mix(in srgb, var(--ivory) 80%, transparent); margin-top: .6rem; max-width: 34em; font-weight: 300; }
+.stockcta__btns { display: flex; flex-wrap: wrap; gap: .8rem; }
+.stockcta .btn--fill { background: var(--ivory); color: var(--cocoa); }
+.stockcta .btn--fill::before { background: var(--accent); }
+.stockcta .btn--fill:hover { color: var(--ivory); }
+.stockcta .btn--ghost { color: var(--ivory); }
+.stockcta .btn--ghost::before { background: var(--ivory); }
+.stockcta .btn--ghost:hover { color: var(--cocoa); border-color: var(--ivory); }
+.footer--lite { padding-block: 2.2rem; }
+
+/* bandeau « En stock » sur l'accueil (visible seulement s'il y a des pièces en stock) */
+.stockbanner { background: var(--linen); padding-block: clamp(2.6rem, 6vw, 4.5rem); border-bottom: 1px solid rgba(51, 36, 31, .06); }
+.stockbanner[hidden] { display: none; }
+.stockbanner__in { display: grid; gap: 2rem; align-items: center; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .stockbanner__in { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 3rem; } }
+.stockbanner__txt p:not(.eyebrow) { color: var(--muted); max-width: 34em; margin: .8rem 0 1.5rem; font-weight: 300; }
+.stockbanner__txt b { font-weight: 500; margin-left: .4rem; }
+.stockbanner__thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.stockbanner__thumbs img { width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 14px; background: var(--sand); }
