@@ -86,6 +86,8 @@ a { color: inherit; }
 .tab .icon { width: 24px; height: 24px; }
 .tab[aria-current="page"] { color: var(--accent); border-top-color: var(--accent); }
 .tab__long { display: none; }
+@media (max-width: 440px) { .tab { font-size: .62rem; padding-inline: 0; letter-spacing: -.01em; } .tab .icon { width: 22px; height: 22px; } }   /* sept onglets dans la barre du bas d'un téléphone */
+@media (max-width: 350px) { .tab { font-size: .56rem; } }
 @media (min-width: 600px) { .brand__name { display: inline; } }
 @media (min-width: 1100px) {
   :root { --nav-h: 0px; }

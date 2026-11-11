@@ -31,7 +31,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
   var NB = '\xA0';                              /* espace insécable (typographie française) */
   var COLON = NB + ': ';
   var FILES = ['settings', 'articles', 'catalog', 'texts', 'photos'];
-  var VIEWS = ['articles', 'boutique', 'textes', 'photos', 'livraison', 'historique'];
+  var VIEWS = ['stock', 'nouveautes', 'boutique', 'textes', 'photos', 'livraison', 'historique'];   /* « stock » et « nouveautes » : les deux listes d'articles (l'ancienne adresse #/articles mène à « stock ») */
   var IMG_RE = /^assets\/(img|uploads)\/[A-Za-z0-9_\-\/.]{1,120}\.(jpe?g|png|webp)$/;
   var UPLOAD_RE = /^assets\/uploads\/[0-9]{6}\/[0-9a-f]{12}\.(jpg|png|webp)$/;
   var TEXT_KEY = /^[a-z0-9-]{1,40}\.[A-Za-z0-9-]{1,40}$/;
@@ -158,7 +158,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
     blobs: new Map(),         /* chemin d'une photo envoyée -> blob: local pour l'afficher tout de suite */
     ownBlobs: new Set(),      /* tous les blob: créés par cette page (seuls autorisés comme adresse d'image) */
     errors: new Map(),        /* champs invalides de l'écran affiché : bloquent la publication */
-    view: 'articles',
+    view: 'stock',
     page: null,               /* textes et photos modifiables, lus dans ../index.html */
     renderId: 0,              /* repère de l'affichage en cours (pour ignorer les réponses tardives) */
     poll: null,               /* suivi de la mise en ligne */
@@ -435,7 +435,7 @@ if (window.top !== window.self) { window.top.location = window.location; }
 
   /* message affiché sur l'écran de connexion : un 503 (serveur pas prêt) devient une phrase simple ; sinon le message français du serveur (429 : trop d'essais, 401 : identifiants…) */
   function loginMessage(e) {
-    return e instanceof ApiError && e.status === 503 ? 'Connexion momentanément indisponible, réessayez dans quelques minutes.' : messageOf(e);
+    return e instanceof ApiError && e.status === 503 ? 'Connexion impossible pour le moment. Si l’espace pro vient d’être mis en ligne, le serveur attend encore ses réglages (identifiant, mot de passe, jeton GitHub) : prévenez Justin. Sinon, réessayez dans quelques minutes.' : messageOf(e);
   }
   /* paramètres de connexion : sel, nombre de tours, code à 6 chiffres demandé ou non (contrôlés : un serveur qui répond n'importe quoi est refusé) ;
      le champ du code est montré dès que le serveur l'exige (totp vrai) */
@@ -716,7 +716,8 @@ if (window.top !== window.self) { window.top.location = window.location; }
 
   function viewFromHash() {
     var v = location.hash.replace(/^#\/?/, '');
-    return VIEWS.indexOf(v) >= 0 ? v : 'articles';
+    if (v === 'articles') { return 'stock'; }                          /* ancienne adresse */
+    return VIEWS.indexOf(v) >= 0 ? v : 'stock';
   }
   /* affiche l'onglet courant sans remonter en haut de page (après une action) */
   function renderCurrent(toTop) {
@@ -881,7 +882,9 @@ if (window.top !== window.self) { window.top.location = window.location; }
   }
   function moveArticle(id, delta) {
     var list = state.work.articles, i = articleIndex(id), j = i + delta, tmp;
-    if (i < 0 || j < 0 || j >= list.length) { return; }
+    if (i < 0) { return; }
+    while (j >= 0 && j < list.length && list[j].kind !== list[i].kind) { j += delta; }   /* on monte et on descend parmi les articles du même onglet (stock ou nouveautés) */
+    if (j < 0 || j >= list.length) { return; }
     tmp = list[i]; list[i] = list[j]; list[j] = tmp;
     afterArticleChange(id, delta < 0 ? 'up' : 'down');
   }
@@ -948,39 +951,53 @@ if (window.top !== window.self) { window.top.location = window.location; }
     ]);
   }
 
-  RENDERERS.articles = function (root) {
-    var list = state.work.articles, cards;
+  /* la liste d'un onglet : « stock » = pièces déjà crochetées, prêtes à partir (kind dispo) ; « nouveautes » = nouveautés crochetées à la commande (kind commande) */
+  function renderArticleList(root, kind) {
+    var all = state.work.articles, list = all.filter(function (a) { return a.kind === kind; }), stock = kind === 'dispo', cards, ready, sold, pills = [];
     cardRefs = {};
     root.appendChild(h('div', { class: 'viewhead' }, [
-      h('h1', { class: 'viewtitle', tabindex: '-1', text: 'Mes articles' }),
-      h('p', { class: 'lead', text: 'Vos pièces en stock (page «\xA0En stock\xA0», expédiées sous 24 à 48\xA0h) et vos nouveautés sur commande (page d’accueil).' })
+      h('h1', { class: 'viewtitle', tabindex: '-1', text: stock ? 'Pièces en stock' : 'Nouveautés sur commande' }),
+      h('p', { class: 'lead', text: stock
+        ? 'Les pièces déjà crochetées, prêtes à partir sous 24 à 48\xA0h\xA0: elles apparaissent sur la page «\xA0En stock\xA0» de votre site. Quand une pièce est vendue, sa quantité tombe à 0 et elle disparaît de la page.'
+        : 'Vos nouveautés, crochetées à la commande\xA0: elles apparaissent en haut de la page d’accueil de votre site.' })
     ]));
     if (state.corrupt.length) {
       root.appendChild(h('p', { class: 'notice notice--warn', text: 'Certaines informations du site n’ont pas pu être lues (' + state.corrupt.map(function (n) { return CORRUPT_NAMES[n]; }).join(', ') + '). Elles seront remplacées si vous les modifiez.' }));
     }
-    root.appendChild(button('Ajouter un article', 'btn btn--primary btn--big btn--block', function () { openArticleForm(null, null); }, 'plus'));
+    if (stock && list.length) {
+      ready = list.filter(function (a) { return a.qty > 0; }).length; sold = list.length - ready;
+      pills.push(h('span', { class: 'pill pill--ok', text: plural(ready, 'pièce prête à partir', 'pièces prêtes à partir') }));
+      if (sold) { pills.push(h('span', { class: 'pill pill--sold', text: plural(sold, 'vendue', 'vendues') })); }
+      root.appendChild(h('div', { class: 'pills' }, pills));
+    }
+    root.appendChild(button(stock ? 'Ajouter une pièce en stock' : 'Ajouter une nouveauté', 'btn btn--primary btn--big btn--block', function () { openArticleForm(null, null, kind); }, 'plus'));
+    if (all.length >= MAX_ARTICLES - 10) {
+      root.appendChild(h('p', { class: 'notice notice--warn', text: 'Vous avez ' + all.length + ' articles sur ' + MAX_ARTICLES + ' possibles (stock et nouveautés réunis)\xA0: pensez à supprimer les pièces vendues dont vous n’avez plus besoin.' }));
+    }
     if (!list.length) {
       root.appendChild(h('div', { class: 'card empty cards' }, [
-        h('p', { class: 'empty__title', text: 'Vous n’avez pas encore d’article.' }),
-        h('p', { class: 'empty__txt', text: 'Ajoutez votre première pièce\xA0: elle apparaîtra tout en haut de votre site.' })
+        h('p', { class: 'empty__title', text: stock ? 'Aucune pièce en stock pour le moment.' : 'Aucune nouveauté pour le moment.' }),
+        h('p', { class: 'empty__txt', text: stock ? 'Ajoutez une pièce déjà crochetée\xA0: elle apparaîtra sur la page «\xA0En stock\xA0» de votre site.' : 'Ajoutez une nouveauté\xA0: elle apparaîtra tout en haut de votre page d’accueil.' })
       ]));
       return;
     }
     cards = h('div', { class: 'cards cards--2' });
     list.forEach(function (a, i) { cards.appendChild(articleCard(a, i, list.length)); });
     root.appendChild(cards);
-  };
+  }
+  RENDERERS.stock = function (root) { renderArticleList(root, 'dispo'); };
+  RENDERERS.nouveautes = function (root) { renderArticleList(root, 'commande'); };
 
   /* ---------- le formulaire d'un article (plein écran sur téléphone) ---------- */
   /* editId : article à modifier ; copyOf : article à dupliquer ; aucun des deux : nouvel article */
-  function openArticleForm(editId, copyOf) {
+  function openArticleForm(editId, copyOf, defKind) {
     var list = state.work.articles, existing = editId ? list.find(function (a) { return a.id === editId; }) : null, src = existing || copyOf || null;
     var d, layer, sheet, initial, sending = 0;
     var nameIn, nameErr, priceIn, priceErr, qtyIn, qtyErr, qtyField, descIn, detIn, catSel, grid, photoErr, addBtn, fileInput, kindBoxes = [], formMsg, saveBtn;
 
     if (!existing && list.length >= MAX_ARTICLES) { toast('Vous avez déjà ' + MAX_ARTICLES + ' articles\xA0: c’est le maximum. Supprimez-en un avant d’en ajouter.', { error: true }); return; }
     d = {
-      kind: src ? src.kind : 'dispo', isNew: src ? src.isNew : true, visible: src ? !src.hidden : true,
+      kind: src ? src.kind : (defKind === 'commande' ? 'commande' : 'dispo'), isNew: src ? src.isNew : true, visible: src ? !src.hidden : true,
       photos: src ? src.photos.map(function (p) { return { key: uid('p'), path: p, url: null, status: 'ok', msg: '' }; }) : []
     };
 
