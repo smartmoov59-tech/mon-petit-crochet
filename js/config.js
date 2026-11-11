@@ -70,12 +70,14 @@ window.MPC_CONFIG = {
   /* Supplément « détails décoratifs » (perles, coquillages, bordure dorée ou argentée, marguerites, et la chaîne de sac de 40 cm : même supplément pour tous) */
   finishSurcharge: 3,
 
-  /* FRAIS DE LIVRAISON : un montant fixe par commande, quel que soit le poids (décision du 10 nov. 2026 : 5 €).
-     fee   = montant en euros (0 = livraison offerte).
+  /* FRAIS DE LIVRAISON (point relais ou locker seulement). Décision du 10 nov. 2026 : 5 € ; depuis le 11 nov. 2026 chaque pièce peut avoir SES frais.
+     fee   = frais PAR DÉFAUT, en euros (0 = livraison offerte), pour toute pièce qui n'a pas ses propres frais (pièces de la boutique et articles d'Oriana : réglés dans son espace pro).
+             Une commande est un seul colis : elle paie le frais le plus élevé de ses pièces, une seule fois (donc 5 € par commande tant qu'aucune pièce n'a son tarif) ;
+             si Oriana allume « additionner » dans son espace pro (sum), les frais de chaque pièce s'additionnent (× quantité).
      modes = modes de remise qui paient la livraison : seulement 'relais' (livraison en point relais ou locker Mondial Relay).
              La livraison à domicile n'est pas proposée. « En main propre » ('main') est gratuit ;
              « On voit ensemble » ('ensemble') ne paie rien en ligne (à convenir avec Oriana).
-     Oriana peut changer ce montant (et les modes proposés) dans son espace pro : le site et le serveur des commandes suivent tout seuls.
+     Oriana peut changer ces montants (et les modes proposés) dans son espace pro : le site et le serveur des commandes suivent tout seuls.
      ⚠ Pour changer la valeur d'ORIGINE ici, changez aussi SHIPPING_FEE en haut de paiement-serveur/commandes-worker.js
        (le serveur recalcule le total lui-même et refuserait un montant différent). */
   shipping: { fee: 5, modes: ['relais'] }

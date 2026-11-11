@@ -74,6 +74,7 @@
   const artById = id => ARTS.find(a => a.id === id);
   const artMax = a => (a.kind === 'dispo' ? a.qty : 20);
   const artSold = a => a.kind === 'dispo' && a.qty < 1;
+  const newArts = () => ARTS.filter(a => a.kind !== 'dispo');   /* nouveautés sur commande : elles s'affichent dans la grille de la boutique, à côté des pièces d'origine */
   /* Panier relu depuis le navigateur : remis d'équerre (prix modifiés par Oriana, pièces vendues, retirées ou masquées depuis) */
   let cartNote = '';
   cart = cart.filter(l => {
@@ -86,6 +87,7 @@
     }
     const p = byId(l.pid);
     if (!p || p.hidden || p.quote) { cartNote = 'Une pièce de votre panier n’est plus proposée : elle a été retirée.'; return false; }
+    if ((l.colors || []).some(c => !COLOR[c])) { cartNote = 'Une couleur de votre panier n’est plus proposée : la pièce a été retirée.'; return false; }   /* coloris retiré de la vente par Oriana */
     if (isChain(l.finish) && !chainOk(l.finish, l.colors)) {   /* chaîne qui ne va pas (ou plus) avec les tons des coloris : retirée plutôt que refusée au paiement */
       l.finish = 'aucune'; l.key = [p.id, l.model, l.size, (l.colors || []).join('+'), l.finish].join('|');
       cartNote = 'La chaîne d’un sac de votre panier ne va pas avec ses couleurs : elle a été retirée.';
@@ -96,9 +98,16 @@
   saveCart();
   const cartCount = () => cart.reduce((n, l) => n + l.qty, 0);
   const cartTotal = () => cart.reduce((n, l) => n + l.unit * l.qty, 0);
-  /* Frais de livraison : un montant fixe par commande (CFG.shipping), dû seulement pour les modes qui livrent (aujourd'hui : le point relais ou locker, la livraison à domicile n'existe plus) */
-  const SHIP = CFG.shipping || {}, shipBase = Math.max(0, Number(SHIP.fee) || 0);
-  const shipFee = mode => ((SHIP.modes || []).includes(mode) ? shipBase : 0);
+  /* Frais de livraison, dus seulement pour les modes qui livrent (aujourd'hui : le point relais ou locker, la livraison à domicile n'existe plus ; la remise en main propre est gratuite).
+     Chaque pièce a ses frais (ceux qu'Oriana fixe pour la pièce, sinon les frais par défaut CFG.shipping.fee). Une commande est un seul colis : elle paie le frais le plus ÉLEVÉ de
+     ses pièces, une seule fois (comme avant : 5 € par commande tant qu'aucune pièce n'a son tarif) ; si Oriana allume « additionner » (CFG.shipping.sum), les frais de chaque pièce
+     s'additionnent (× quantité). Le serveur de commandes calcule exactement pareil (paiement-serveur/commandes-worker.js, priceCart et shippingFor). */
+  const SHIP = CFG.shipping || {}, shipBase = Math.max(0, Number(SHIP.fee) || 0), shipSum = SHIP.sum === true;
+  const ownShip = o => (o && typeof o.ship === 'number' && o.ship >= 0 ? o.ship : shipBase);
+  const lineShip = l => (l.article ? ownShip(artById(String(l.pid).slice(2))) : ownShip(byId(l.pid)));
+  const shipTotal = lines => { const t = shipSum ? lines.reduce((n, l) => n + lineShip(l) * l.qty, 0) : lines.reduce((m, l) => Math.max(m, lineShip(l)), 0); return Math.round(t * 100) / 100; };
+  const shipFee = (mode, lines) => ((SHIP.modes || []).includes(mode) ? shipTotal(lines || cart) : 0);
+  const relayShipOn = () => (SHIP.modes || []).includes('relais') && !(CFG.modesOn && CFG.modesOn.relais === false);
 
   function refreshBadges() {
     const n = cartCount();
@@ -111,7 +120,7 @@
   /* ---------- Grille produits ---------- */
   function renderFilters() {
     const box = $('#filters');
-    box.innerHTML = window.MPC_FILTERS.filter(f => f.id === 'all' || PRODUCTS.some(p => !p.hidden && p.cat === f.id)).map((f, i) => `<button class="chip-btn" type="button" data-f="${f.id}" aria-pressed="${i === 0}">${esc(f.name)}</button>`).join('');
+    box.innerHTML = window.MPC_FILTERS.filter(f => f.id === 'all' || PRODUCTS.some(p => !p.hidden && p.cat === f.id) || newArts().some(a => a.cat === f.id)).map((f, i) => `<button class="chip-btn" type="button" data-f="${f.id}" aria-pressed="${i === 0}">${esc(f.name)}</button>`).join('');
     box.addEventListener('click', e => {
       const b = e.target.closest('[data-f]'); if (!b) return;
       $$('[data-f]', box).forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -149,9 +158,11 @@
 
   function renderGrid() {
     const grid = $('#productGrid');
-    grid.innerHTML = PRODUCTS.filter(p => !p.hidden).map(cardHTML).join('');
+    /* les pièces de la boutique, puis les nouveautés d'Oriana (articles « sur commande » de son espace pro), dans la même grille */
+    grid.innerHTML = PRODUCTS.filter(p => !p.hidden).map(cardHTML).join('') + newArts().map(a => artCardHTML(a, false, true)).join('');
+    bindArtGrid(grid);                                                   /* « Ajouter au panier », « Voir en détail » ou un clic sur la carte d'une nouveauté */
     grid.addEventListener('click', e => {
-      const card = e.target.closest('.card'); if (!card) return;
+      const card = e.target.closest('.card'); if (!card || card.classList.contains('card--art')) return;
       const p = byId(card.dataset.id);
       const dot = e.target.closest('.dot[data-color]');
       if (dot) { showCardColor(card, p, dot.dataset.color); return; }
@@ -186,18 +197,19 @@
   }
 
   /* ---------- Nouveautés et pièces disponibles (articles ajoutés par Oriana dans son espace pro) ---------- */
-  function artBadges(a) {
+  function artBadges(a, inShop) {
     const b = [];
     if (a.isNew) b.push(['new', 'Nouveau']);
+    if (inShop && a.kind !== 'dispo') return b;                      /* dans la boutique tout est crocheté à la commande : il ne reste que la mention « Nouveau » */
     if (a.kind !== 'dispo') b.push(['order', 'Sur commande']);
     else if (a.qty < 1) b.push(['sold', 'Vendu']);
     else b.push([a.qty === 1 ? 'one' : 'stock', a.qty === 1 ? 'Pièce unique' : 'Disponible']);
     return b;
   }
-  function artCardHTML(a, fast) {                               /* fast : carte de la page « En stock » (mention de l'expédition sous 24 à 48 h) */
-    const sold = artSold(a);
-    return `<article class="card card--art${sold ? ' is-sold' : ''}" data-art="${esc(a.id)}">
-      <div class="card__media"><div class="badges">${artBadges(a).map(([k, t]) => `<span class="badge badge--${k}">${esc(t)}</span>`).join('')}</div>${a.photos[0] ? `<img class="card__photo" src="${esc(a.photos[0])}" alt="${esc(a.name)}" loading="lazy" width="720" height="900" decoding="async">` : ''}</div>
+  function artCardHTML(a, fast, inShop) {                       /* fast : carte de la page « En stock » (mention de l'expédition sous 24 à 48 h) ; inShop : carte dans la grille de la boutique (filtrée par type de pièce) */
+    const sold = artSold(a), badges = artBadges(a, inShop);
+    return `<article class="card card--art${sold ? ' is-sold' : ''}" data-art="${esc(a.id)}" data-cat="${esc(a.cat)}">
+      <div class="card__media">${badges.length ? `<div class="badges">${badges.map(([k, t]) => `<span class="badge badge--${k}">${esc(t)}</span>`).join('')}</div>` : ''}${a.photos[0] ? `<img class="card__photo" src="${esc(a.photos[0])}" alt="${esc(a.name)}" loading="lazy" width="720" height="900" decoding="async">` : ''}</div>
       <div class="card__body">
         <div class="card__row"><h3>${esc(a.name)}</h3><span class="price">${money(a.price)}</span></div>
         ${a.details ? `<p class="card__tag">${esc(a.details)}</p>` : ''}
@@ -215,17 +227,7 @@
       if (card && !e.target.closest('button')) openArticle(card.dataset.art);           /* un clic sur la carte ouvre la fiche */
     });
   }
-  /* Accueil : seulement les nouveautés sur commande ; les pièces en stock ont leur propre page (en-stock.html) et un bandeau sur l'accueil */
-  function renderArticles() {
-    const sec = $('#disponibles'), grid = $('#artGrid');
-    if (!sec || !grid) return;
-    const news = ARTS.filter(a => a.kind !== 'dispo');
-    if (!news.length) { sec.remove(); return; }                                          /* rien à montrer : la section n'existe pas (motion.js ne la verra jamais) */
-    grid.innerHTML = news.map(a => artCardHTML(a)).join('');
-    sec.hidden = false;
-    $$('.nav, #menu nav').forEach(n => n.insertAdjacentHTML('afterbegin', '<a href="#disponibles">Nouveautés</a>'));
-    bindArtGrid(grid);
-  }
+  /* Accueil : les nouveautés sur commande sont dans la grille de la boutique (renderGrid) ; les pièces en stock ont leur propre page (en-stock.html) et un bandeau sur l'accueil */
 
   /* ---------- Pièces en stock : prêtes à partir, expédiées sous 24 à 48 h (page en-stock.html, bandeau de l'accueil) ---------- */
   const STOCK_CATS = [['sacs', 'Sacs'], ['paniers', 'Paniers'], ['cordons', 'Chaînes de téléphone'], ['autres', 'Autres pièces']];
@@ -288,6 +290,8 @@
     $('#amTitle').textContent = a.name;
     $('#amDesc').textContent = a.desc;
     $('#amDetails').textContent = a.details;
+    const amShip = $('#amShip');                                                                  /* frais de livraison de cette pièce (point relais) */
+    if (amShip) { const f = relayShipOn() ? ownShip(a) : -1; amShip.textContent = f < 0 ? '' : (f > 0 ? 'Livraison en point relais : ' + money(f) + ' (gratuite en remise en main propre).' : 'Livraison en point relais offerte.'); amShip.hidden = f < 0; }
     $('#amPrice').textContent = money(a.price);
     $('#amMain').innerHTML = a.photos[0] ? `<img src="${esc(a.photos[0])}" alt="${esc(a.name)}">` : '';
     $('#amThumbs').innerHTML = a.photos.length > 1 ? a.photos.map((p, i) => `<button class="thumb" type="button" data-am-thumb="${esc(p)}" aria-pressed="${i === 0}" aria-label="Photo ${i + 1}"><img src="${esc(p)}" alt="" loading="lazy"></button>`).join('') : '';
@@ -560,11 +564,11 @@
     const sub = cartTotal(), n = cartCount(), row = (l, v) => `<div><span>${l}</span><span>${v}</span></div>`;
     let ship = '', total = sub;
     if (relayOn()) {
-      const fee = shipBase ? money(shipBase) : 'offerte';
-      if (!mode) { ship = row('Livraison en point relais<small>offerte en main propre</small>', fee); total = sub + shipBase; }
-      else if (shipFee(mode)) { ship = row('Livraison en point relais', fee); total = sub + shipBase; }
+      const all = shipTotal(cart), fee = all ? money(all) : 'offerte';                        /* frais de toutes les pièces du panier (plafonnés), voir shipTotal */
+      if (!mode) { ship = row('Livraison en point relais<small>offerte en main propre</small>', fee); total = sub + all; }
+      else if (shipFee(mode)) { ship = row('Livraison en point relais', fee); total = sub + all; }
       else if (mode === 'main') ship = row('Remise en main propre', 'gratuite');
-      else ship = row(`Livraison<small>${shipBase ? money(shipBase) + ' en point relais' : 'offerte en point relais'}</small>`, 'à convenir');
+      else ship = row(`Livraison<small>${all ? money(all) + ' en point relais' : 'offerte en point relais'}</small>`, 'à convenir');
     }
     return `<div class="sum">${row(`Sous-total (${n} article${n > 1 ? 's' : ''})`, money(sub))}${ship}<div class="big"><span>Total</span><span>${money(total)}</span></div></div>`;
   }
@@ -624,7 +628,7 @@
     return `<div class="field relay" id="relayField" hidden>
       <span class="label">Votre point relais ou locker <small>Mondial Relay</small></span>
       ${RL.demo ? `<p class="relay__demo" role="note">Démonstration : points d’exemple, aucun envoi réel.</p>` : ''}
-      <p class="small" style="margin:0">Je vous livre dans le point relais ou le locker Mondial Relay de votre choix, parmi les plus proches de chez vous. ${shipFee('relais') ? 'Livraison : ' + money(shipFee('relais')) + ' par commande.' : 'La livraison est offerte.'}</p>
+      <p class="small" style="margin:0">Je vous livre dans le point relais ou le locker Mondial Relay de votre choix, parmi les plus proches de chez vous. ${shipFee('relais') ? 'Livraison : ' + money(shipFee('relais')) + ' pour cette commande.' : 'La livraison est offerte.'}</p>
       ${cs.length > 1 ? `<div class="pills pills--row" role="group" aria-label="Pays de livraison">${cs.map(c => `<button type="button" class="pill" data-relay-country="${c}" aria-pressed="${c === relayCountry}"><b>${esc(RL.countryName(c))}</b></button>`).join('')}</div>` : ''}
       <div class="relay__search">
         <input id="oPostal" name="postal" inputmode="text" autocomplete="postal-code" maxlength="10" placeholder="Votre code postal" aria-label="Votre code postal" aria-describedby="relayErr">
@@ -1133,7 +1137,7 @@
     renderStockPage();
     bindArticleModal(); bindDrawer(); refreshBadges();
   } else {
-    renderFilters(); renderGrid(); renderArticles(); renderStockTeaser(); renderColorWall(); renderCustomSwatches(); renderGallery(); renderReviews(); setupContact();
+    renderFilters(); renderGrid(); renderStockTeaser(); renderColorWall(); renderCustomSwatches(); renderGallery(); renderReviews(); setupContact();
     $$('select').forEach(enhanceSelect);
     initCustomViewer();
     bindModal(); bindArticleModal(); bindDrawer(); bindCustom(); refreshBadges();
@@ -1143,7 +1147,7 @@
   onClick('#cartOpen', () => openDrawer('cart'));
   onClick('#fab', () => openDrawer('cart'));
   onClick('#sumupHelp', () => openDrawer('sumup'));
-  $$('[data-ship-note]').forEach(el => { el.hidden = !shipBase; const f = $('[data-ship-fee]', el); if (f) f.textContent = money(shipBase); });   /* phrase « la livraison coûte… » de la page, alimentée par config.js */
+  $$('[data-ship-note]').forEach(el => { el.hidden = !relayShipOn(); });   /* phrase « livraison en point relais : frais indiqués sur chaque pièce » : seulement si ce mode de remise existe */
   window.addEventListener('resize', refreshBadges);
 
   window.MPC = {

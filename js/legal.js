@@ -19,6 +19,5 @@
   } else { paint(!!endpoint, !!endpoint && !!sc.autoOrders); }
   var relayOn = !!(c.sendcloud && String(c.sendcloud.publicKey || '').trim());
   show('relay', relayOn);                                                                         /* paragraphe sur Sendcloud et Mondial Relay : seulement si les points relais sont activés */
-  var fee = Number(c.shipping && c.shipping.fee) || 0, ship = show('shipping', relayOn && fee > 0);   /* paragraphe sur les frais de livraison (livraison en point relais seulement) */
-  if (ship && relayOn && fee > 0) { var out = ship.querySelector('[data-fee]'); if (out) out.textContent = fee.toLocaleString('fr-FR', { minimumFractionDigits: fee % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; }
+  show('shipping', relayOn && !(c.modesOn && c.modesOn.relais === false));                        /* paragraphe sur les frais de livraison (livraison en point relais seulement ; frais propres à chaque pièce, fixés par Oriana) */
 })();
