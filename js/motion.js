@@ -99,6 +99,20 @@
   gsap.set('.loader__title span', { yPercent: 110 });
   gsap.set('.loader__sub', { opacity: 0, y: 12 });
   const counter = { v: 0 }, countEl = $('#loaderCount');
+  /* la pelote tourne et rétrécit en lâchant son fil ; le crochet suit le bout du fil, la pointe en avant, et finit avec une petite boucle */
+  const ball = $('#loaderBall'), spin = $('#loaderSpin'), hook = $('#loaderHook'), loopEl = $('#loaderLoop');
+  const BX = 46, BY = 74, SX = 73.2, SY = 86.7, prog = { p: 0 }, loopS = { s: 0 };
+  function wind() {
+    const p = prog.p, L = len * p, s = 1 - .3 * p;
+    path.style.strokeDashoffset = len - L;
+    ball.setAttribute('transform', `translate(${SX} ${SY}) scale(${s.toFixed(3)}) translate(${-SX} ${-SY})`);   /* elle rétrécit vers le point où part le fil */
+    spin.setAttribute('transform', `rotate(${(p * 840).toFixed(1)} ${BX} ${BY})`);
+    const a = path.getPointAtLength(L), b = path.getPointAtLength(Math.min(len, L + 1)), c = path.getPointAtLength(Math.max(0, L - 1));
+    const tilt = 34 - 16 * Math.max(0, (p - .9) / .1);
+    hook.setAttribute('transform', `translate(${a.x.toFixed(2)} ${a.y.toFixed(2)}) rotate(${(Math.atan2(b.y - c.y, b.x - c.x) * 180 / Math.PI + tilt).toFixed(1)})`);
+    countEl.textContent = Math.round(p * 100);
+  }
+  wind();
   const pageReady = new Promise(res => { if (document.readyState === 'complete') res(); else window.addEventListener('load', res, { once: true }); setTimeout(res, 2400); });
 
   function heroIn() {
@@ -116,14 +130,13 @@
   const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
   intro.to('.loader__title span', { yPercent: 0, duration: .9 }, .05)
     .to('.loader__sub', { opacity: 1, y: 0, duration: .9 }, .5)
-    .to(path, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' }, .15)
-    .to(counter, { v: 100, duration: 1.4, ease: 'power2.inOut', onUpdate: () => { countEl.textContent = Math.round(counter.v); } }, .2)
-    .add(() => { intro.pause(); pageReady.then(() => intro.resume()); }, 1.6)
+    .to(prog, { p: 1, duration: 1.5, ease: 'power2.inOut', onUpdate: wind }, .15)   /* la pelote se déroule, le crochet mène le fil et le compteur monte */
+    .to(loopS, { s: 1, duration: .45, ease: 'back.out(2.4)', onUpdate: () => loopEl.setAttribute('transform', `scale(${loopS.s.toFixed(3)})`) }, 1.5)   /* à la fin : une petite boucle sur le crochet */
+    .add(() => { intro.pause(); pageReady.then(() => intro.resume()); }, 2)
     .to('.loader__inner', { opacity: 0, y: -40, duration: .7, ease: 'power2.in' }, '>+.1')
     .to('.loader__strips i', { scaleY: 0, duration: 1.0, ease: 'expo.inOut', stagger: { each: .07, from: 'center' } }, '>-.25')
     .add(() => { document.body.classList.remove('is-loading'); heroIn(); }, '<+.35')
     .set('#loader', { display: 'none' });
-
   /* ---------- Hero : parallax multicouche ---------- */
   gsap.to('.hero__bg', { yPercent: 14, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   gsap.to('[data-hero-mid]', { yPercent: -16, opacity: .0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '80% top', scrub: true } });
@@ -209,7 +222,9 @@
     };
     setStep(0);
     ScrollTrigger.create({ trigger: '.atelier__pin', start: 'top top', end: '+=330%', pin: true, anticipatePin: 1, onUpdate: self => setStep(Math.min(steps.length - 1, Math.floor(self.progress * steps.length))) });
-    gsap.fromTo(vid, { scale: 1.15 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: '.atelier', start: 'top bottom', end: 'bottom top', scrub: true } });
+    /* fond : la fiche de tous les modèles défile du haut (paniers) vers le bas (sacs) pendant les quatre étapes */
+    const panMax = () => Math.max(0, vid.offsetHeight - $('.atelier__pin').offsetHeight);
+    gsap.fromTo(vid, { y: 0 }, { y: () => -panMax(), ease: 'none', scrollTrigger: { trigger: '.atelier__pin', start: 'top top', end: '+=330%', scrub: true, invalidateOnRefresh: true } });
     return () => { setStep(0); };
   });
   mm.add('(max-width: 899px)', () => {

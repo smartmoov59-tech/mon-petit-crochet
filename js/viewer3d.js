@@ -743,13 +743,18 @@
 
   /* Silhouette réelle du sac d'Oriana (relevée sur sa photo, en pixels) */
   const BAG_S = 3.6 / 680;
-  /* silhouette de face mesurée sur les photos du sac rouge / rose : flancs bombés, fond plat, dôme de poignée pointu (+0,33 au-dessus des épaules), fente à fond plat */
-  const BAG_OUT = [[40, 606], [18, 700], [11, 800], [13, 880], [22, 960], [34, 1030], [56, 1068], [94, 1084], [150, 1089], [352, 1090], [552, 1089], [608, 1084], [646, 1068], [668, 1030], [680, 960], [688, 880], [690, 800], [684, 700], [664, 606], [630, 599], [596, 591], [558, 580], [518, 568], [470, 554], [414, 546], [352, 543], [290, 546], [232, 554], [184, 568], [144, 580], [106, 591], [72, 599]];
-  const BAG_SLOT = [[243, 636], [262, 616], [300, 607], [350, 604], [420, 607], [490, 619], [522, 640], [514, 654], [440, 660], [350, 658], [272, 654], [246, 644]];
+  /* silhouette de face mesurée sur la planche « Des modèles qui vous donneront des idées » (rangée SACS, 4 sacs, hauteur du corps = 2,56) :
+     corps presque carré, bord haut plat un peu plus étroit (demi-largeur 1,24) que le ventre (1,42, tout en bas), flancs droits qui s'évasent vers le bas,
+     coins du fond arrondis ; petite anse en arche basse au centre (+0,29 au-dessus du bord, largeur 1,04 hors tout, corde fine) percée d'une fente en D de 0,8 × 0,33.
+     Les 19 premiers points (épaule gauche, flanc, fond, flanc, épaule droite) donnent la demi-longueur a(y) ; les 13 derniers sont le bord haut, de droite à gauche. */
+  const BAG_OUT = [[112, 606], [105, 712], [97, 807], [89, 901], [84, 977], [88, 1022], [104, 1052], [129, 1071], [169, 1087], [352, 1090], [535, 1087], [575, 1071], [600, 1052], [616, 1022], [620, 977], [615, 901], [607, 807], [599, 712], [592, 606],
+    [560, 606], [502, 606], [459, 605], [442, 588], [418, 563], [384, 553], [352, 551], [320, 553], [286, 563], [262, 588], [245, 605], [202, 606], [144, 606]];
+  /* fente en « D » : dôme dessous l'arche, fond plat (le dessus du fond = le bord arrière vu à travers) */
+  const BAG_SLOT = [[277, 637], [274, 616], [282, 597], [304, 583], [328, 577], [352, 576], [376, 577], [400, 583], [422, 597], [430, 616], [427, 637], [389, 639], [352, 639], [315, 639]];
   /* épaisseur du sac : plus large au pied (fond plat), plus étroit en haut (photo de côté) */
   /* demi-épaisseur totale : .61 au pied (fond plat de 1,22), .80 au ventre (1,6), .68 au bord (1,36) ; ef = demi-épaisseur du flanc plat (épais au pied et au bord, effilé au ventre : bouts en demi-cercles) */
-  const BAG_H = y => .60 + .09 * ss(0, .9, y) - .05 * ss(1.9, 2.8, y);   /* sac plutôt carré (photos), pas en tonneau */
-  const BAG_PL = 1.30, BAG_PD = .50, BAG_NH = 52, BAG_PB = -.05, BAG_PT = -.02;   /* plaque entièrement sous le fil (le fil du fond ondule de ± .02) */   /* plaque du fond : demi-longueur, demi-largeur, trous, dessous, dessus */
+  const BAG_H = y => .60 + .06 * ss(0, .9, y) - .03 * ss(1.9, 2.7, y);   /* profondeur ≈ 0,5 × la largeur du haut : .60 au pied, .66 au ventre, .63 au bord */
+  const BAG_PL = 1.08, BAG_PD = .53, BAG_NH = 46, BAG_PB = -.05, BAG_PT = -.02;   /* plaque entièrement sous le fil (le fil du fond ondule de ± .02) */   /* plaque du fond : demi-longueur, demi-largeur, trous, dessous, dessus */
   const px2v = p => new T.Vector2((p[0] - 352) * BAG_S, (1090 - p[1]) * BAG_S);
   const id2v = p => new T.Vector2(p[0], p[1]);
 
@@ -764,7 +769,7 @@
     const h = P[i + 1][0] - P[i][0], t = (y - P[i][0]) / h, t2 = t * t, t3 = t2 * t;
     return (2 * t3 - 3 * t2 + 1) * P[i][1] + (t3 - 2 * t2 + t) * h * sl(i) + (-2 * t3 + 3 * t2) * P[i + 1][1] + (t3 - t2) * h * sl(i + 1);
   }
-  const bagB = y => BAG_H(Math.min(y, BAG_YS)) * (.84 + .16 * ss(0, .25, y));   /* le bas rentre sur la plaque (coin arrondi) */
+  const bagB = y => BAG_H(Math.min(y, BAG_YS)) * (.88 + .12 * ss(0, .3, y));   /* le bas rentre sur la plaque (coin arrondi) */
   /* point du contour de la section : f dans [0,1[ : face avant (de gauche à droite), bout droit, face arrière, bout gauche ; normale sortante (nx, nz) */
   function bagRing(a, b, f) {
     const L = Math.max(0, a - b), per = 4 * L + 2 * Math.PI * b; let s = (((f % 1) + 1) % 1) * per, x, z, nx, nz;
@@ -873,7 +878,7 @@
   }
   function basketSurface(c) {
     const y0 = PLATE_TOP + c.ff, y1 = c.H - c.rimR, e = 2 / c.n;
-    const rad = y => c.rad(Math.min(1, Math.max(0, (y - y0) / (y1 - y0)))) + .01;
+    const rad = y => c.rad(Math.min(1, Math.max(0, (y - y0) / (y1 - y0)))) + (c.prot === undefined ? .01 : c.prot);   /* prot : les mailles débordent de la paroi */
     const pt = (phi, y) => {
       const P = (f, yy) => new T.Vector3(sgn(Math.sin(f), e) * rad(yy) * c.sx, yy, sgn(Math.cos(f), e) * rad(yy));
       const p = P(phi, y), tf = P(phi + .01, y).sub(p), ty = P(phi, y + .01).sub(p);
@@ -919,7 +924,7 @@
     } else {
       /* 4 breloques en or rosé, accrochées au bord à droite de l'anse (sac) / devant (panier) */
       const bag = type === 'bag';
-      const FX = bag ? [.70, .85, .98, 1.10] : [.40, .57, .74, .91];   /* sac : sur l'épaule à droite de l'anse (fente jusqu'à x ≈ .87) ; cabas : inchangé */
+      const FX = bag ? [.55, .70, .85, .97] : [.40, .57, .74, .91];   /* sac : accrochées au bord plat, à droite de la petite anse (oreille jusqu'à x ≈ .5) ; cabas : inchangé */
       const set = [['star', .29, basket ? .3 : FX[0]], ['scallop', .2, basket ? .1 : FX[1]], ['cowrie', .14, basket ? -.1 : FX[2]], ['star', .14, basket ? -.3 : FX[3]]];
       set.forEach((s, i) => {
         const c = charm(s[0], s[1] * ACC), spot = surf.top(s[2], .02 + .045 * (i % 3)); if (!spot) return;
@@ -1003,7 +1008,9 @@
         const c = new T.CatmullRomCurve3(loop, true), t = new T.TubeGeometry(c, Math.max(160, loop.length * 3), rr, 10, true);
         tubeUV(t, Math.max(4, Math.round(c.getLength() * rd / 4)), 1, 0); t.scale(1, 1, fl); add(t, rm);
       } else [1, -1].forEach(sg => add(ropeTube(top, (y, x) => sg * (o.ef(y) + zc) * zk * zEnd(y, x), rr, rd, fl, metalRim, sg * .6), rm));
-      if (slot) [1, -1].forEach(sg => add(ropeTube(slot.concat([slot[0]]), y => sg * (o.ef(y) + zc) * zk, rr * (metalRim ? .7 : o.rflat ? .65 : .85), rd, fl, metalRim, sg * .6), rm));
+      /* o.slotU : la fente de l'anse n'a de corde que sur son fond (un U plat dont les bouts se perdent dans les pieds de l'arche, qui est déjà le haut de la fente) */
+      if (slot) { const sp = o.slotU || slot.concat([slot[0]]);
+        [1, -1].forEach(sg => add(ropeTube(sp, (y, x) => sg * (o.ef(y) + zc) * zk, rr * (o.slotR || (metalRim ? .7 : o.rflat ? .65 : .85)), rd, fl, metalRim, sg * .6), rm)); }
       /* bord fermé aux deux bouts : une corde transversale relie la tresse avant et la tresse arrière (anneau continu aux bouts arrondis) */
       if (!metalRim && o.rflat && !o.noBody) [out[0], out[gusN * k]].forEach((s, i) => {
         const dx = i ? 1 : -1, ze = (o.ef(s.y) + zc) * zk, b = o.endB || .05, sy = s.y - dyR;
@@ -1018,16 +1025,18 @@
     if (type === 'bag') {
       const LITE = liteNow(), gros = gauge === 'gros';   /* sac bicolore : gros fil double (≈ 14 × 11 mailles), cf. sa photo bleu / blanc */
       /* gros fil : V de jersey (grosse feuille « \ » + petite « / », un trou noir par maille, rayure rouge / rose le long du ruban), 11 rangs, ≈ 40 mailles autour ; la bande d'anse et le bord sont des rubans plats */
-      const bagEf = y => BAG_H(Math.min(y, BAG_YS)) - .17;   /* centre des rubans du bord : à ±0,5 (bande plate de 0,32 de large) */
+      const bagEf = y => BAG_H(Math.min(y, BAG_YS)) - .02;   /* centre des rubans du bord : le ruban (rayon .10) dépasse un peu le tricot, on le voit tout autour du bord */
+      /* fond de la fente de l'anse : U plat de -.478 à +.478 (les pieds de l'arche), fond à y = 2,383, relevé aux bouts jusqu'au bord (y = 2,503) */
+      const slotU = []; for (let i = 0; i <= 24; i++) { const t = -1 + i / 12; slotU.push({ x: .478 * t, y: 2.383 + .12 * Math.pow(Math.abs(t), 3) }); }
       const o = gros
-        ? { ef: bagEf, noBody: true, ropeDy: .12, endB: .3, w: .8, rim: .15, rimM: .13, rflat: 1.07, tex: 'jersey', dens: 4.5, crev: .26, bump: 1.4, env: .25, rimCrev: .5, rimDens: .6, mat: { occ: 1, sheenK: .25 } }
-        : { ef: bagEf, noBody: true, ropeDy: .11, endB: .3, w: .8, rim: .13, rimM: .13, rflat: 1.07, tex: 'cushion', dens: 6.6, crev: .30, bump: 1.7, env: .25, rimCrev: .5, rimDens: .72, mat: { occ: 1, gain: 1.12 } };
+        ? { ef: bagEf, noBody: true, slotU, slotR: .9, ropeDy: .07, endB: .3, w: .8, rim: .07, rimM: .09, rflat: 1.07, tex: 'jersey', dens: 4.5, crev: .26, bump: 1.4, env: .25, rimCrev: .5, rimDens: 1.9, mat: { occ: 1, sheenK: .25 } }
+        : { ef: bagEf, noBody: true, slotU, slotR: .9, ropeDy: .065, endB: .3, w: .8, rim: .065, rimM: .09, rflat: 1.07, tex: 'cushion', dens: 6.6, crev: .30, bump: 1.7, env: .25, rimCrev: .5, rimDens: 1.3, mat: { occ: 1, gain: 1.12 } };
       /* surface de l'avant (pour les finitions : breloques, perles, fleurs) : z du fil au-dessus du corps en stade */
       const prot = gros ? .075 : .055;
       o.zfn = (x, y) => { const yy = Math.min(y, BAG_YS), a = bagA(yy), b = bagB(yy), L = a - b, ax = Math.abs(x); return ax <= L ? b + prot : ax >= a ? null : Math.sqrt(Math.max(0, b * b - (ax - L) * (ax - L))) + prot; };
       const outB = pillow({ list: BAG_OUT, map: px2v }, 14, 18, BAG_SLOT, o);
       { /* ---------- le corps : mailles instanciées, rang après rang (en rond) ---------- */
-        const NC = gros ? 40 : 62, nFull = gros ? 10 : 17, y0 = .10, yFull = 2.36, prow = (yFull - y0) / (nFull - 1), slotPoly = ring(BAG_SLOT, 14, px2v);
+        const NC = gros ? 32 : 49, nFull = gros ? 10 : 17, y0 = .10, yFull = 2.36, prow = (yFull - y0) / (nFull - 1), slotPoly = ring(BAG_SLOT, 14, px2v);
         const stM = op => { const m = stitchMaterial(U, op); mats.push(m); return m; };
         add(bagCore(.06, .04, BAG_YS - .1, 44, 168, slotPoly), stM({ back: .95, rib: 0, deepK: [.95, .78, .62], rowP: prow }));
         const base = { deepK: gros ? [1, .8, .68] : [1, .8, .64], rowP: prow, rib: tn('ribk', gros ? 1.6 : 2.0), aoK: tn('aoK', gros ? .8 : .65), rowDk: tn('rowDk', gros ? .85 : .78) };
@@ -1120,7 +1129,7 @@
         add(mergeGeos(strands), yarn({ dens: o.dens, uv: false, disp: .01, tex: 'rows', env: .25 }));
         const brass = plain('#e6c6a2', .32, .45);   /* laiton rosé clair (un métal très poli reflèterait le bas sombre du décor et virerait au brun) */
         [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(q => {
-          const d = new T.CylinderGeometry(.07, .035, .07, 20); d.translate(q[0] * .96, BAG_PB - .035, q[1] * .30); add(d, brass);   /* plot conique : large côté plaque, étroit vers l'extérieur */
+          const d = new T.CylinderGeometry(.07, .035, .07, 20); d.translate(q[0] * .80, BAG_PB - .035, q[1] * .30); add(d, brass);   /* plot conique : large côté plaque, étroit vers l'extérieur */
         });
       }
     } else if (type === 'tote') {
@@ -1159,15 +1168,85 @@
          t : 0 au pied, 1 au bord ; ov : dépassement du ruban au-delà de la plaque ; d : distance trou - bord de la plaque */
       const oval = type === 'basketOval', KS = { S: .645, M: .79, L: 1 };
       let c;
-      if (!oval && size !== 'S') c = { H: .74, sx: 1, n: 2, tiles: 13, rows: 5, NH: 72, ov: .035, d: .09, hole: .043, thick: .19, ff: .06, skew: .26, tex: 'ribbon', rad: t => 1.5 * (.92 + .08 * Math.pow(Math.sin(Math.PI * t), .6)), rimTube: .12, rimOff: -.12, vs: .7, saw: 0, strand: .8 };
-      else if (!oval) c = { H: 1.18, sx: 1.12, n: 2.4, tiles: 10, rows: 7, NH: 40, ov: .03, d: .12, hole: .052, thick: .15, ff: .07, skew: 0, tex: 'ovalvee', rad: t => 1.15 * (1 - .17 * t), rimTube: .095, rimOff: -.035, vs: 1, saw: .1, strand: 1.1 };
-      else { const k = KS[size] || 1; c = { H: 1.35 * k, sx: 2.5 / 1.5, n: 2.8, tiles: Math.round(15 * k), rows: 8, NH: 4 * Math.round(15 * k), ov: .02, d: .13 * k, hole: .056 * k, thick: .15 * k, ff: .09 * k, skew: 0, tex: 'ovalvee', rad: t => 1.5 * k * (.93 + .07 * t), rimTube: .095 * k, rimOff: -.035 * k, vs: 1, saw: .09 * k, strand: 1.1 }; }
+      /* d'après ses photos : panier rond caramel à bordure dorée (paroi droite, quatre rangs de grosses mailles inclinées, tresse au bord, plateau de bois fin)
+         et panier ovale rouille (mailles plus fines, sept rangs, tresse lisse au bord, jours clairs sur la paroi du fond) ; les mailles sont des objets 3D, comme sur le sac */
+      if (!oval) { const k = size === 'S' ? .8 : 1; c = { H: size === 'S' ? 1.2 : 1.38, sx: 1, n: 2, tiles: 8, rows: 4, NH: Math.round(72 * k), ov: .035, d: .09, hole: .043, thick: .19, ff: .06, skew: .26, tex: 'ribbon', rad: t => 1.5 * k * (1 + .012 * t - .06 * (1 - ss(0, .4, t))), rimTube: .125, rimOff: -.05, vs: 1, saw: .06, strand: .8, style: 'gros', rowP: tn('bRow', .235), sp: tn('bSp', .31), segs: 120, prot: .09 }; }
+      else { const k = KS[size] || 1; c = { H: 1.2 + .55 * k, sx: 2.5 / 1.5, n: 2.8, tiles: 12, rows: 6, NH: 4 * Math.round(15 * k), ov: .02, d: .13 * k, hole: .056 * k, thick: .15 * k, ff: .09 * k, skew: 0, tex: 'ovalvee', rad: t => 1.5 * k * (.93 + .07 * t), rimTube: .12, rimOff: -.035, vs: 1, saw: .09 * k, strand: 1.1, style: 'fin', rowP: tn('bRow', .225), sp: tn('bSp', .27), segs: 130, prot: .08 }; }
       c.rimR = c.rimTube * .8; c.hr = c.rad(0) - c.ov - c.d;
       const rf = c.rad(0), rp = rf - c.ov, mid = c.rad(.5), N = c.NH;
-      const dens = c.tiles * 4 / superRing(mid * c.sx, mid, c.n, 4, 0).per;
-      /* warm : ombres d'ocre chaudes ; holeLit : petits jours clairs entre les mailles ; saw : limite de couleur en dents de scie */
-      const gv = c.tex === 'ovalvee';   /* paniers vert et crème : relief plus marqué, creux plus profonds, nœuds de ruban dodus */
-      add(basketGeo(c), yarn(Object.assign({ dens, uv: true, tex: c.tex, disp: .05, crev: .6, warm: 1, saw: c.saw, holeLit: 1 }, gv ? { disp: .06, crev: .42, bump: 1.7 } : {})));
+      const dens = 1 / c.sp;   /* mailles par unité de longueur : la tresse du bord a une boucle par maille */
+      const gv = c.tex === 'ovalvee';   /* ovale : relief plus marqué, creux plus profonds, nœuds de ruban dodus (languettes du pied) */
+      /* bordure dorée / argentée : ruban plat tressé, or franc (jaune chaud, creux brun doré) ou argent clair, brillant (cf. sa photo du panier rond doré) */
+      const chainMatB = d => {
+        const dore = finish === 'dore';
+        const m = yarnMaterial(U, { fixed: dore ? '#f2c24e' : '#dcdde2', fixed2: dore ? '#b87d1c' : '#9d9ea6', deepK: dore ? [.7, .5, .26] : [.62, .62, .66], dens: d, uv: true, tex: 'chain', disp: .04, bump: 1.7 });
+        m.metalness = dore ? .85 : .8; m.roughness = .3; m.clearcoat = .5; m.envMapIntensity = 1.6; store.plain.push(m); return m;
+      };
+      { /* ---------- paroi : mailles instanciées rang après rang (comme le sac), posées sur une coque sombre qui laisse voir les creux ---------- */
+        const LITE = liteNow(), gros = c.style === 'gros', yb = PLATE_TOP + c.ff, yTop0 = c.H - c.rimR, yEnd = yTop0 - c.rimTube * tn('bEnd', .5);
+        const R = Math.max(3, Math.round((yEnd - yb) / c.rowP)), prow = (yEnd - yb) / R;
+        const rOut = y => c.rad(Math.min(1, Math.max(0, (y - yb) / (yTop0 - yb))));
+        const rIn = y => { const f = Math.min(1, Math.max(0, (y - PLATE_TOP) / (yTop0 - PLATE_TOP))); return c.hr + ((c.rad(1) - c.thick) - c.hr) * f; };
+        const NC = Math.max(14, Math.round(superRing(rOut((yb + yEnd) / 2) * c.sx, rOut((yb + yEnd) / 2), c.n, 4, 0).per / c.sp));
+        const stM = op => { const m = stitchMaterial(U, op); mats.push(m); return m; };
+        add(basketGeo(c), stM({ back: .95, rib: 0, deepK: [.95, .78, .62], rowP: prow }));   /* coque sombre : ce qu'on voit entre les mailles */
+        const base = { deepK: gros ? [1, .8, .68] : [1, .8, .64], rowP: prow, rib: tn('bRib', gros ? 1.6 : 2.0), aoK: tn('bAO', gros ? 1.0 : .85), rowDk: tn('bRowDk', .65), saw: c.saw, stripe: true, stripeT: .6 };
+        const VAR = [[.16, .35, .72], [.14, -.3, .8], [-.16, .3, .7], [-.18, -.35, .78], [.0, .1, .75]];
+        const mk = (gg, kk) => VAR.map((v, i) => leafGeo(Object.assign({}, gg, { kap: v[0] * (kk || 1), tau: v[1], skew: v[2], cv: (i % 2 ? -.12 : .14) })));
+        const gM = { L: 1, W: 1, B: .25, nS: LITE ? 6 : 8, nV: LITE ? 4 : 5, crease: tn('bcr', gros ? .6 : .5), tp: tn('btp', gros ? .3 : .35), w0: tn('bw0', gros ? .4 : .3), arch: tn('barch', .7) };
+        const mainSet = instSet(mk(gM, tn('bKap', gros ? .8 : 1.0)), stM(base), g, store);
+        const smallSet = gros ? instSet(mk(Object.assign({}, gM, { nS: LITE ? 5 : 7, nV: LITE ? 3 : 4, crease: .3, tp: tn('bstp', .4), w0: tn('bsw0', .2) }), 1), stM(base), g, store) : null;
+        const P0 = gros
+          ? { kL: tn('bkL', 1.35), kW: tn('bkW', 1.25), B: tn('bB', .26), lean: tn('blean', -.75), lj: .1, cx: -.08, cy: .08, hx: .45, hy: -.32, hr: .10 }
+          : { kL: tn('bkL', 1.75), kW: tn('bkW', 1.3), B: tn('bB', .2), lean: tn('blean', -.55), lj: .10, cx: -.03, cy: .04, hx: .5, hy: -.5, hr: .14 };
+        /* repère local de chaque maille : P position, X le long du rang, Y vers le haut, N vers l'extérieur (vers l'intérieur pour la face interne) */
+        const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+        const unit = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+        const frames = (radAt, y, n, ph, inward) => {
+          const e = .004, ringAt = yy => superRing(radAt(yy) * c.sx, radAt(yy), c.n, n, ph), A = ringAt(y), Uu = ringAt(y + e).pts, Dd = ringAt(y - e).pts, list = [];
+          for (let i = 0; i < n; i++) {
+            const q = A.pts[i], a = A.pts[(i + 1) % n], b = A.pts[(i - 1 + n) % n];
+            const Tf = [a.x - b.x, 0, a.z - b.z], Ty = [Uu[i].x - Dd[i].x, 2 * e, Uu[i].z - Dd[i].z];
+            let Nn = unit(cross(Tf, Ty)); if (Nn[0] * q.nx + Nn[2] * q.nz < 0) Nn = Nn.map(v => -v);
+            let X = unit(Tf); const d = X[0] * Nn[0] + X[1] * Nn[1] + X[2] * Nn[2]; X = unit([X[0] - Nn[0] * d, X[1] - Nn[1] * d, X[2] - Nn[2] * d]);
+            if (inward) { Nn = Nn.map(v => -v); X = X.map(v => -v); }
+            list.push({ P: [q.x, y, q.z], X, N: Nn, Y: cross(Nn, X) });
+          }
+          return { list, p: A.per / n };
+        };
+        const holes = [], holesIn = [], z0 = tn('bz0', .02);
+        for (let j = 0; j < R; j++) {
+          const y = yb + (j + .5) * prow, F = frames(rOut, y, NC, j * .11, false), p = F.p;
+          F.list.forEach((f, i) => {
+            const h = k => hh2(i, j, k), mv = (dx, dy, z) => [f.P[0] + f.X[0] * dx * p + f.Y[0] * dy * prow + f.N[0] * z, f.P[1] + f.X[1] * dx * p + f.Y[1] * dy * prow + f.N[1] * z, f.P[2] + f.X[2] * dx * p + f.Y[2] * dy * prow + f.N[2] * z];
+            const sL = p * P0.kL * (.9 + .2 * h(2)), sW = prow * P0.kW * (.9 + .22 * h(3)), sB = P0.B * (.8 + .4 * h(4)), zz = z0 + (h(8) - .5) * .01;
+            mainSet.push(Math.floor(h(9) * 5) % 5, stitchMat(mv(P0.cx + (h(5) - .5) * .12, P0.cy + (h(7) - .5) * .12, zz), f.X, f.Y, f.N, P0.lean + (h(1) - .5) * 2 * P0.lj, sL, sW, sB), [h(10), h(11), h(12), h(13)]);
+            if (smallSet) smallSet.push(Math.floor(h(14) * 5) % 5, stitchMat(mv(tn('bscx', -.45) + (h(15) - .5) * .08, tn('bscy', -.10) + (h(16) - .5) * .08, zz - .012), f.X, f.Y, f.N, tn('bslean', 1.1) + (h(17) - .5) * .3, sL * tn('bsKL', 1), sW * tn('bsKW', .9), sB * .8), [h(18), h(19), h(21), h(22)]);
+            if (!LITE || !gros) holes.push(stitchMat(mv(P0.hx, P0.hy, zz - .034), f.X, f.Y, f.N, 0, P0.hr * p * (.85 + .3 * h(23)), P0.hr * prow * (.9 + .3 * h(24)), 1));
+          });
+        }
+        mainSet.build(); if (smallSet) smallSet.build();
+        /* face interne : même fil vu de l'intérieur, plus petit ; petits jours clairs (le fond du décor se voit à travers) */
+        const yi0 = PLATE_TOP + .05, yiEnd = yTop0 + c.rimTube * .1, Rin = Math.max(3, Math.round((yiEnd - yi0) / (c.rowP * .95))), prIn = (yiEnd - yi0) / Rin;
+        const NCin = Math.max(12, Math.round(NC * rIn((yi0 + yiEnd) / 2) / rOut((yb + yEnd) / 2)));
+        const inSet = instSet(mk({ L: 1, W: 1, B: .22, nS: LITE ? 3 : 4, nV: LITE ? 3 : 3, crease: .35, tp: .55, w0: .08, arch: .6 }, 1), stM(Object.assign({}, base, { deepK: [1, .78, .62], gain: .88, aoK: 1.0, rowDk: .7, rowP: prIn })), g, store, false);
+        for (let j = 0; j < Rin; j++) {
+          const y = yi0 + (j + .5) * prIn, F = frames(rIn, y, NCin, j * .11 + .3, true), p = F.p;
+          F.list.forEach((f, i) => {
+            const h = k => hh2(i + 900, j + 31, k), mv = (dx, dy, z) => [f.P[0] + f.X[0] * dx * p + f.Y[0] * dy * prIn + f.N[0] * z, f.P[1] + f.X[1] * dx * p + f.Y[1] * dy * prIn + f.N[1] * z, f.P[2] + f.X[2] * dx * p + f.Y[2] * dy * prIn + f.N[2] * z];
+            inSet.push(Math.floor(h(9) * 5) % 5, stitchMat(mv((h(5) - .5) * .12, (h(7) - .5) * .12, 0), f.X, f.Y, f.N, .22 + (h(1) - .5) * .3, p * 1.4 * (.9 + .2 * h(2)), prIn * (.9 + .2 * h(3)), .15 * (.8 + .4 * h(4))), [h(10), h(11), h(12), h(13)]);
+            if (!LITE) holesIn.push(stitchMat(mv(.5, -.5, -.02), f.X, f.Y, f.N, 0, .11 * p, .11 * prIn, 1));
+          });
+        }
+        inSet.build();
+        const mkHoles = (arr, color) => {
+          if (!arr.length) return;
+          const hm = new T.MeshBasicMaterial({ color, side: T.DoubleSide }); store.plain.push(hm);
+          const him = new T.InstancedMesh(new T.CircleGeometry(1, 8), hm, arr.length); arr.forEach((e, k) => { for (let q = 0; q < 16; q++) him.instanceMatrix.array[k * 16 + q] = e[q]; });
+          him.castShadow = false; him.receiveShadow = false; g.add(him); store.geos.push(him.geometry); (store.inst = store.inst || []).push(him); store.tris = (store.tris || 0) + arr.length * 8;
+        };
+        mkHoles(holes, '#150a08'); mkHoles(holesIn, '#f2e8d6');
+      }
       /* plateau de bouleau percé : dessus et dessous clairs, un trou par languette sur une courbe parallèle au contour (écart constant) */
       const foot = superRing(rf * c.sx, rf, c.n, N, 0), pitch = foot.per / N;
       const psh = new T.Shape(); superRing(rp * c.sx, rp, c.n, 260, 0).pts.forEach((q, i) => i ? psh.lineTo(q.x, q.z) : psh.moveTo(q.x, q.z));
@@ -1175,7 +1254,7 @@
       const plate = new T.ExtrudeGeometry(psh, { depth: PLATE_TOP - PLATE_BOT, bevelEnabled: false, curveSegments: 24 });
       plate.rotateX(Math.PI / 2); plate.translate(0, PLATE_TOP, 0);   /* le dessus est à PLATE_TOP, le dessous à PLATE_BOT */
       const edge = plain('#e6d6bc', .65, 0);                           /* tranche : crème pâle (pas d'orange), couverte par le ruban */
-      const cap = plain('#c4b9a4', .78, 0); cap.map = birchTexture(); cap.envMapIntensity = .5; cap.emissive = new T.Color('#5a4d3a'); cap.emissiveIntensity = .3;   /* bouleau mat : ne doit pas « brûler » dessus */
+      const cap = plain('#dcb98f', .78, 0); cap.map = birchTexture(); cap.envMapIntensity = .5; cap.emissive = new T.Color('#5a4d3a'); cap.emissiveIntensity = .3;   /* bouleau mat : ne doit pas « brûler » dessus */
       const capLow = plain('#c4b9a4', .78, 0); capLow.map = birchTexture(); capLow.envMapIntensity = .5; capLow.emissive = new T.Color('#a89473'); capLow.emissiveIntensity = .4;   /* … ni virer au gris dessous (une lumière douce venue du dessous complète) */
       if (plate.groups.length === 2) { const g0 = plate.groups[0], half = g0.count / 2, g1 = plate.groups[1]; plate.clearGroups(); plate.addGroup(0, half, 0); plate.addGroup(half, half, 2); plate.addGroup(g1.start, g1.count, 1); }   /* 1re moitié des faces plates = dessus, 2e = dessous */
       add(plate, [cap, edge, capLow]);
@@ -1195,11 +1274,11 @@
       /* bord : tresse plate (point d'écrevisse) en retrait (rond jaune) ou légèrement saillante (ovale), ou ruban doré / argenté */
       const yTop = c.H - c.rimR, ro = c.rad(1) + c.rimOff;
       const rimPts = superRing(ro * c.sx, ro, c.n, 200, 0).pts.map(q => new T.Vector3(q.x, yTop, q.z));
-      const curve = new T.CatmullRomCurve3(rimPts, true), t = new T.TubeGeometry(curve, 420, metalRim ? c.rimTube * 1.2 : c.rimTube, 12, true);
+      const curve = new T.CatmullRomCurve3(rimPts, true), t = new T.TubeGeometry(curve, 420, metalRim ? c.rimTube * tn('bRimM', 1.5) : c.rimTube * tn('bRimP', 1.12), 12, true);
       tubeUV(t, Math.max(4, Math.round(curve.getLength() * dens / (metalRim ? 1 : 4) * (metalRim ? 1 : c.vs))), 1, metalRim ? .25 : 0); t.translate(0, -yTop, 0); t.scale(1, .8, 1); t.translate(0, yTop, 0);
-      add(t, metalRim ? chainMat(dens) : yarn({ dens, uv: true, tex: 'plait', disp: .02, crev: .78, cavLo: .46, cavDeep: 1, bump: 1.2, warm: 1 }));   /* tresse lisse : creux doux, fines lignes sombres */
+      add(t, metalRim ? chainMatB(dens) : yarn({ dens, uv: true, tex: 'plait', disp: .02, crev: .78, cavLo: .46, cavDeep: 1, bump: 1.2, warm: 1 }));   /* tresse lisse : creux doux, fines lignes sombres */
       surf = basketSurface(c);
-      store.ref = oval ? new T.Vector3(2 * 2.5 + .3, 1.5, 3.3) : new T.Vector3(3.3, 1.3, 3.3);
+      store.ref = oval ? new T.Vector3(2 * 2.5 + .3, 1.9, 3.3) : new T.Vector3(3.3, 1.55, 3.3);
     } else if (type === 'strap') {
       /* Chaîne de téléphone : ruban plat tressé en V, boucle suspendue au téléphone par un anneau (cf. ses photos) */
       const half = [[0, 0], [-.24, .6], [-.68, 1.55], [-1.02, 2.65], [-1.12, 3.75], [-.84, 4.75], [0, 5.25]].map(v => new T.Vector3(v[0], v[1], 0));
@@ -1278,7 +1357,7 @@
     return g;
   }
 
-  const fractions = { bag: { duo: .29, contrast: .77 }, tote: { duo: .28, contrast: .74 }, basketRound: { duo: .69, contrast: .66 }, basketOval: { duo: .69, contrast: .66 }, sleeve: { duo: .3, contrast: .7 }, strap: {} };
+  const fractions = { bag: { duo: .33, contrast: .74 }, tote: { duo: .28, contrast: .74 }, basketRound: { duo: .69, contrast: .66 }, basketOval: { duo: .69, contrast: .66 }, sleeve: { duo: .3, contrast: .7 }, strap: {} };
   const modes = { solid: 0, mix: 1, duo: 2, contrast: 3 };
 
   /* ---------- Environnement de studio (reflets doux, éclat du fil) ---------- */
@@ -1361,7 +1440,7 @@
       const ref = store.ref || size3, R = ref.length() / 2, cy = ref.y / 2;
       contact.visible = type !== 'strap'; contact.scale.set(size3.x * 1.5, size3.z * 1.5 + 1.1, 1);
       const dist = R / Math.sin(T.MathUtils.degToRad(camera.fov / 2)) * (type === 'strap' ? 1.1 : 1.0);
-      const lift = (type === 'basketRound' || type === 'basketOval') ? .55 : type === 'bag' || type === 'tote' ? .22 : .3;
+      const lift = (type === 'basketRound' || type === 'basketOval') ? tn('bLift', 1.0) : type === 'bag' || type === 'tote' ? .22 : .3;
       camera.position.set(0, cy + R * lift, dist); camera.lookAt(0, cy - R * .08, 0);
       /* une nouvelle pièce repart du fil écru : la couleur la remplira ensuite */
       U.uA.value.set(CREAM); U.uB.value.set(CREAM); U.uPA.value.set(CREAM); U.uPB.value.set(CREAM);

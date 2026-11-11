@@ -56,7 +56,9 @@
     if (p.sizes) p.sizes.forEach(s => prices.push(s.price)); else p.models.forEach(m => prices.push(m.price));
     return Math.min(...prices);
   }
-  const hasFinish = p => p.type !== 'strap' && !p.quote;
+  /* finitions autorisées par pièce (règles de la gérante, voir MPC_FINISH_RULES dans data.js) */
+  const finishIds = pid => (window.MPC_FINISH_RULES || {})[pid] || FINISHES.map(f => f.id);
+  const hasFinish = p => !p.quote && finishIds(p.id).some(id => id !== 'aucune');
 
   /* ---------- Panier (localStorage) ---------- */
   const KEY = 'mpc-cart-v1';
@@ -65,6 +67,9 @@
   const saveCart = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (e) {} };
   const cartCount = () => cart.reduce((n, l) => n + l.qty, 0);
   const cartTotal = () => cart.reduce((n, l) => n + l.unit * l.qty, 0);
+  /* Frais de livraison : un montant fixe par commande (CFG.shipping), dû seulement pour les modes qui livrent (aujourd'hui : le point relais ou locker, la livraison à domicile n'existe plus) */
+  const SHIP = CFG.shipping || {}, shipBase = Math.max(0, Number(SHIP.fee) || 0);
+  const shipFee = mode => ((SHIP.modes || []).includes(mode) ? shipBase : 0);
 
   function refreshBadges() {
     const n = cartCount();
@@ -87,6 +92,8 @@
     });
   }
 
+  /* cadrage d'une vraie photo dans la carte carrée (voir MPC_FRAME dans data.js) */
+  const frameAttr = name => { const f = (window.MPC_FRAME || {})[name]; return f ? ` style="--pos:${f.pos};--z:${f.zoom}"` : ''; };
   function cardHTML(p) {
     const from = fromPrice(p);
     const c0 = p.defaultColors[0], g0 = p.photosByColor[c0];
@@ -95,10 +102,10 @@
     const cta = p.quote
       ? `<button type="button" class="btn btn--fill magnetic" data-open="${p.id}"><span>Demander un devis</span></button>`
       : `<button type="button" class="btn btn--fill magnetic" data-add="${p.id}"><span>Ajouter au panier</span></button><button type="button" class="btn btn--ghost btn--more" data-open="${p.id}"><span>Plus de détails</span></button>`;
-    return `<article class="card${g0 ? ' is-gen' : ''}" data-id="${p.id}" data-cat="${p.cat}" data-pick="${c0}"${p.sizes ? ` data-psize="${p.sizes[0].id}"` : ''}>
+    return `<article class="card${g0 ? (g0.startsWith('gen/') ? ' is-gen' : ' is-real') : ''}" data-id="${p.id}" data-cat="${p.cat}" data-pick="${c0}"${p.sizes ? ` data-psize="${p.sizes[0].id}"` : ''}>
       <div class="card__media">
         ${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}
-        <img class="card__photo" src="${g0 ? 'assets/img/' + g0 + '.jpg' : p.photo}" alt="${esc(p.photoAlt)}" loading="lazy" width="720" height="900" decoding="async">
+        <img class="card__photo" src="${g0 ? 'assets/img/' + g0 + '.jpg' : p.photo}" alt="${esc(p.photoAlt)}" loading="lazy" width="720" height="900" decoding="async"${frameAttr(g0)}>
         <div class="card__svg" aria-hidden="true"></div>
       </div>
       <div class="card__body">
@@ -145,7 +152,7 @@
     const img = $('.card__photo', card), svg = $('.card__svg', card);
     $$('.dot[data-color]', card).forEach(d => d.setAttribute('aria-pressed', d.dataset.color === cid));
     card.dataset.pick = cid;
-    if (photo) { img.src = 'assets/img/' + photo + '.jpg'; card.classList.remove('is-preview'); card.classList.toggle('is-gen', photo.startsWith('gen/')); }
+    if (photo) { img.src = 'assets/img/' + photo + '.jpg'; card.classList.remove('is-preview'); const gen = photo.startsWith('gen/'); card.classList.toggle('is-gen', gen); card.classList.toggle('is-real', !gen); const fr = (window.MPC_FRAME || {})[photo] || {}; img.style.setProperty('--pos', fr.pos || '50% 74%'); img.style.setProperty('--z', fr.zoom || 1); }
     else { openProduct(p.id, cid); }   /* pas de photo dans ce coloris : le configurateur 3D recolore la vraie pièce */
   }
 
@@ -205,7 +212,7 @@
     }
     $('#mColors').innerHTML = hc;
     if (hasFinish(p)) {
-      const list = m.forceFinish ? FINISHES.filter(f => m.forceFinish.includes(f.id)) : FINISHES;
+      const list = m.forceFinish ? FINISHES.filter(f => m.forceFinish.includes(f.id)) : FINISHES.filter(f => finishIds(p.id).includes(f.id));
       if (m.forceFinish && !m.forceFinish.includes(s.finish)) s.finish = m.forceFinish[0];
       h += `<div class="opt"><div class="opt__title">Détails décoratifs<em>+${money(CFG.finishSurcharge)}</em></div><div class="pills pills--row" role="group" aria-label="Finition">` +
         list.map(f => `<button type="button" class="pill" data-finish="${f.id}" aria-pressed="${f.id === s.finish}"><b>${esc(f.name)}</b></button>`).join('') + `</div></div>`;
@@ -228,6 +235,8 @@
       if (photoKey) { const src = 'assets/img/' + photoKey + '.jpg'; $('img', cph).src = src; cph.dataset.src = src; }
       else if (cph.getAttribute('aria-pressed') === 'true') { cph.setAttribute('aria-pressed', 'false'); }
     }
+    /* la photo du coloris choisi et la même photo dans « Mes pièces déjà réalisées » (cas des vraies photos d'Oriana) : une seule vignette */
+    $$('#mThumbs .thumb').forEach(b => { const t = b.dataset.thumb || ''; if (t.indexOf('assets/img/') === 0) b.hidden = !!photoKey && t === 'assets/img/' + photoKey + '.jpg'; });
     const active = $('.thumb[aria-pressed="true"]');
     if (active && active.dataset.thumb === 'colorphoto' && photoKey) $('#mPreview').innerHTML = `<img src="assets/img/${photoKey}.jpg" alt="Photo du modèle dans ce coloris">`;
     else if (!active || active.dataset.thumb === 'svg' || active.dataset.thumb === 'colorphoto') { if (active && active.dataset.thumb === 'colorphoto') setThumbSvg(); else showSvgPreview(); }
@@ -318,6 +327,8 @@
 
   /* ---------- Panier / commande ---------- */
   let view = 'cart', order = null, lastFocus = null;
+  let relay = null, relayCountry = null;   /* point relais ou locker Mondial Relay choisi (js/relais.js) */
+  try { localStorage.removeItem('mpc-last-order'); } catch (_) {}   /* ancienne sauvegarde de la dernière commande (nom, téléphone, adresse), qui n'était jamais relue : supprimée par respect de la vie privée */
   function openDrawer(v) {
     view = v || 'cart'; lastFocus = document.activeElement;
     const d = $('#drawer'); renderDrawer(); d.hidden = false; lock();
@@ -355,10 +366,20 @@
     </div>`;
   }
 
-  function summaryHTML() {
-    return `<div class="sum"><div><span>Sous-total (${cartCount()} article${cartCount() > 1 ? 's' : ''})</span><span>${money(cartTotal())}</span></div>
-      <div><span>Livraison</span><span>à confirmer</span></div>
-      <div class="big"><span>Total</span><span>${money(cartTotal())}</span></div></div>`;
+  /* Récapitulatif des montants. mode = mode de remise choisi (étape « commande »).
+     La livraison n'existe qu'en point relais ou locker Mondial Relay : sans cette option, aucune ligne « Livraison ».
+     Sans mode (étape « panier »), elle est annoncée au tarif normal : au pire le total baisse (remise en main propre). */
+  function summaryHTML(mode) {
+    const sub = cartTotal(), n = cartCount(), row = (l, v) => `<div><span>${l}</span><span>${v}</span></div>`;
+    let ship = '', total = sub;
+    if (relayOn()) {
+      const fee = shipBase ? money(shipBase) : 'offerte';
+      if (!mode) { ship = row('Livraison en point relais<small>offerte en main propre</small>', fee); total = sub + shipBase; }
+      else if (shipFee(mode)) { ship = row('Livraison en point relais', fee); total = sub + shipBase; }
+      else if (mode === 'main') ship = row('Remise en main propre', 'gratuite');
+      else ship = row(`Livraison<small>${shipBase ? money(shipBase) + ' en point relais' : 'offerte en point relais'}</small>`, 'à convenir');
+    }
+    return `<div class="sum">${row(`Sous-total (${n} article${n > 1 ? 's' : ''})`, money(sub))}${ship}<div class="big"><span>Total</span><span>${money(total)}</span></div></div>`;
   }
 
   function sumupLink(total) {
@@ -377,8 +398,75 @@
       const p = byId(l.pid), d = describe(p, l);
       return `• ${l.qty} × ${p.name} : ${d.model}${d.size ? ', ' + d.size : ''}, couleur${d.colors.length > 1 ? 's' : ''} ${d.colors.join(' + ')}${d.finish ? ', ' + d.finish + ' (+' + money(CFG.finishSurcharge) + ')' : ''} → ${money(l.unit * l.qty)}`;
     }).join('\n');
-    const modes = { livraison: 'Livraison', main: 'Remise en main propre', ensemble: 'À convenir ensemble' };
-    return `Bonjour Oriana, voici ma commande ${o.ref} :\n\n${lines}\n\nTotal : ${money(o.total)}\nMode de remise : ${modes[o.mode] || ''}${o.mode === 'livraison' && o.address ? '\nAdresse : ' + o.address : ''}\n\nPrénom / nom : ${o.first} ${o.last}\nContact : ${o.phone}${o.email ? ' · ' + o.email : ''}${o.note ? '\nMessage : ' + o.note : ''}\n\nMerci de me confirmer les coloris. Je règle par SumUp.`;
+    const modes = { relais: 'Livraison en point relais ou locker Mondial Relay', main: 'Remise en main propre', ensemble: 'À convenir ensemble' };
+    const rl = o.mode === 'relais' && o.relay && window.MPC_RELAY ? '\n' + window.MPC_RELAY.recap(o.relay) + (window.MPC_RELAY.demo ? '\n⚠ DÉMONSTRATION : point relais d’exemple, aucun envoi réel.' : '') : '';
+    return `Bonjour Oriana, voici ma commande ${o.ref} :\n\n${lines}\n\n${o.shipping > 0 ? 'Sous-total : ' + money(o.subtotal) + '\nLivraison : ' + money(o.shipping) + '\n' : ''}Total : ${money(o.total)}\nMode de remise : ${modes[o.mode] || ''}${rl}\n\nPrénom / nom : ${o.first} ${o.last}\nContact : ${o.phone}${o.email ? ' · ' + o.email : ''}${o.note ? '\nMessage : ' + o.note : ''}${o.paid ? '\n\nPaiement de ' + money(o.total) + ' réglé par carte via SumUp.' : ''}\n\nMerci de me confirmer les coloris.${o.paid ? '' : ' Je règle par SumUp.'}`;
+  }
+
+  /* ---------- Paiement SumUp : liens (sans serveur) ou carte directement dans le panier (mode clés API : paiement-serveur/) ---------- */
+  const payApi = () => String((CFG.sumup && CFG.sumup.checkoutEndpoint) || '').replace(/\/+$/, '');
+  function payHTML(link) {
+    if (order.paid) return `<div class="paid"><b>Paiement reçu, merci !</b><p class="small" style="margin:0">${money(order.total)} réglés par carte via SumUp. Envoyez-moi le récapitulatif ci-dessus : c’est lui qui me dit ce que vous avez choisi.</p></div>`;
+    if (payApi()) return `<p class="small" style="margin:0">Paiement sécurisé par carte, au montant exact de votre commande, directement ici (SumUp).</p>
+      <button class="btn btn--sumup" type="button" data-pay-card><span>Payer ${money(order.total)} par carte</span></button>
+      <div class="paycard" id="payCard" hidden><p class="small paycard__st" id="payStatus" role="status" aria-live="polite"></p><div id="sumup-card"></div></div>
+      ${link ? `<p class="small" style="margin:0">Vous préférez la page SumUp ? <a class="link" href="${esc(link)}" target="_blank" rel="noopener">Payer ${money(order.total)} sur SumUp</a>.</p>` : ''}`;
+    return link
+      ? `<p class="small" style="margin:0">Paiement sécurisé par carte, au montant exact de votre commande.</p><a class="btn btn--sumup" href="${esc(link)}" target="_blank" rel="noopener"><span>Payer ${money(order.total)} avec SumUp</span></a>`
+      : `<p class="small" style="margin:0">Je vous envoie un lien de paiement SumUp de <b>${money(order.total)}</b> après avoir confirmé vos coloris. Vous réglez par carte, en toute sécurité.</p>`;
+  }
+
+  /* ---------- Livraison en point relais ou locker Mondial Relay (sélecteur Sendcloud, js/relais.js) ---------- */
+  const RL = window.MPC_RELAY, relayOn = () => !!(RL && RL.enabled());
+  function relayFieldHTML() {
+    const cs = RL.countries;
+    return `<div class="field relay" id="relayField" hidden>
+      <span class="label">Votre point relais ou locker <small>Mondial Relay</small></span>
+      ${RL.demo ? `<p class="relay__demo" role="note">Démonstration : points d’exemple, aucun envoi réel.</p>` : ''}
+      <p class="small" style="margin:0">Je vous livre dans le point relais ou le locker Mondial Relay de votre choix, parmi les plus proches de chez vous. ${shipFee('relais') ? 'Livraison : ' + money(shipFee('relais')) + ' par commande.' : 'La livraison est offerte.'}</p>
+      ${cs.length > 1 ? `<div class="pills pills--row" role="group" aria-label="Pays de livraison">${cs.map(c => `<button type="button" class="pill" data-relay-country="${c}" aria-pressed="${c === relayCountry}"><b>${esc(RL.countryName(c))}</b></button>`).join('')}</div>` : ''}
+      <div class="relay__search">
+        <input id="oPostal" name="postal" inputmode="text" autocomplete="postal-code" maxlength="10" placeholder="Votre code postal" aria-label="Votre code postal" aria-describedby="relayErr">
+        <button type="button" class="btn btn--fill" data-relay-open><span>${relay ? 'Changer de point' : 'Voir les points les plus proches'}</span></button>
+      </div>
+      <div class="relay__chosen" id="relayChosen" aria-live="polite" hidden></div>
+      <input type="hidden" name="relay" id="oRelay" value="${relay ? relay.id : ''}">
+      <span class="err" id="relayErr" role="alert" data-err="relay"></span>
+    </div>`;
+  }
+  /* épingles de la carte « point choisi » : ronde pour un point relais, carrée pour un locker (mêmes formes que sur les cartes) */
+  const RELAY_PINS = {
+    relais: '<svg viewBox="0 0 34 44" width="34" height="44" aria-hidden="true" focusable="false"><path d="M17 43S3 28 3 16a14 14 0 0 1 28 0c0 12-14 27-14 27Z" fill="#B0522E" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M10.5 16.5l4.2 4.2 8.3-8.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    locker: '<svg viewBox="0 0 34 44" width="34" height="44" aria-hidden="true" focusable="false"><path d="M7 2h20a5 5 0 0 1 5 5v18a5 5 0 0 1-5 5h-6l-4 13-4-13H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Z" fill="#33241F" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M10.5 16.5l4.2 4.2 8.3-8.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  function renderRelayChosen(fresh) {
+    const box = $('#relayChosen'), inp = $('#oRelay'), row = $('.relay__search'); if (!box) return;
+    if (row) row.hidden = !!relay;                                   /* une fois le point choisi, la carte ci-dessous remplace la recherche (elle a son bouton « Changer de point ») */
+    box.classList.remove('is-new');
+    if (!relay) { box.hidden = true; box.innerHTML = ''; delete box.dataset.type; if (inp) inp.value = ''; return; }
+    const type = relay.type === 'locker' ? 'locker' : 'relais';
+    const chips = [RL.distanceText(relay), RL.hoursToday(relay)].filter(Boolean).map(t => `<span class="rc__chip">${esc(t)}</span>`).join('');
+    box.dataset.type = type;
+    box.innerHTML = `<span class="rc__pin" aria-hidden="true">${RELAY_PINS[type]}</span><div class="rc__body"><span class="rc__kick"><span class="rp__badge rp__badge--${type}">${esc(RL.typeLabel(relay))}</span><span class="rc__ok"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false"><path d="M3 8.4l3.2 3.1L13 4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Choisi</span></span><b class="rc__name">${esc(relay.name)}</b><span class="rc__addr">${esc(RL.addressLine(relay))}</span>${chips ? `<span class="rc__chips">${chips}</span>` : ''}<button type="button" class="rm" data-relay-open>Changer de point</button></div>`;
+    box.hidden = false;
+    if (fresh) { void box.offsetWidth; box.classList.add('is-new'); }   /* l'animation d'arrivée ne joue qu'au moment où la cliente vient de choisir */
+    if (inp) inp.value = relay.id;
+    const b = $('.relay__search [data-relay-open] span'); if (b) b.textContent = 'Changer de point';
+    const e = $('[data-err="relay"]'); if (e) e.textContent = '';
+  }
+  function openRelay() {
+    const f = $('#checkoutForm'); if (!f || !relayOn()) return;
+    const inp = f.elements.postal, typed = inp.value.trim(), err = $('[data-err="relay"]');
+    if ((typed || !relay) && !RL.postalOk(relayCountry, typed)) {          /* sans point déjà choisi, il faut un code postal ; s'il est saisi, il doit avoir la bonne forme */
+      const h = RL.postalHelp(relayCountry);
+      if (err) err.textContent = (typed ? 'Code postal incorrect' : 'Indiquez d’abord votre code postal') + (h ? ' (' + h + ')' : '') + '.';
+      inp.setAttribute('aria-invalid', 'true'); inp.focus(); return;
+    }
+    inp.removeAttribute('aria-invalid');
+    if (err) err.textContent = '';
+    RL.open({ country: relayCountry, postalCode: typed || (relay ? relay.postal : ''), current: relay,
+      onPick: r => { relay = r; renderRelayChosen(true); toast(r.type === 'locker' ? 'Locker choisi' : 'Point relais choisi'); },
+      onError: msg => { const e = $('[data-err="relay"]'); if (e) e.textContent = msg; } });
   }
 
   function renderDrawer() {
@@ -391,30 +479,42 @@
          <p class="small" style="margin:0;text-align:center">Aucun paiement à cette étape.</p>`;
     } else if (view === 'checkout') {
       title.textContent = 'Votre commande';
-      body.innerHTML = `<button class="rm" type="button" data-back style="text-align:left">← Retour au panier</button>${summaryHTML()}
+      const rOn = relayOn(); if (rOn && !relayCountry) relayCountry = RL.countries[0];
+      body.innerHTML = `<button class="rm" type="button" data-back style="text-align:left">← Retour au panier</button><div id="sumBox">${summaryHTML('ensemble')}</div>
         <form class="cform" id="checkoutForm" novalidate>
           <div class="field two"><div><label for="oFirst">Prénom</label><input id="oFirst" name="first" autocomplete="given-name" required><span class="err" data-err="first"></span></div>
           <div><label for="oLast">Nom</label><input id="oLast" name="last" autocomplete="family-name" required><span class="err" data-err="last"></span></div></div>
           <div class="field"><label for="oPhone">Téléphone</label><input id="oPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required><span class="err" data-err="phone"></span></div>
           <div class="field"><label for="oMail">E-mail <small>(facultatif)</small></label><input id="oMail" name="email" type="email" autocomplete="email"><span class="err" data-err="email"></span></div>
           <div class="field"><span class="label">Remise de la pièce</span>
-            <div class="mode" role="radiogroup" aria-label="Remise de la pièce">
-              <label><input type="radio" name="mode" value="livraison"><span>Livraison</span></label>
+            <div class="mode${rOn ? ' mode--relay' : ''}" role="radiogroup" aria-label="Remise de la pièce">
+              ${rOn ? `<label><input type="radio" name="mode" value="relais"><span>Livraison en point relais</span></label>` : ''}
               <label><input type="radio" name="mode" value="main"><span>En main propre</span></label>
               <label><input type="radio" name="mode" value="ensemble" checked><span>On voit ensemble</span></label>
-            </div></div>
-          <div class="field" id="addrField" hidden><label for="oAddr">Adresse de livraison</label><textarea id="oAddr" name="address" rows="3" autocomplete="street-address"></textarea><span class="err" data-err="address"></span></div>
+            </div></div>          ${rOn ? relayFieldHTML() : ''}
           <div class="field"><label for="oNote">Un mot pour moi <small>(facultatif)</small></label><textarea id="oNote" name="note" rows="3" placeholder="Une précision sur un coloris, une date souhaitée…"></textarea></div>
           <button type="submit" class="btn btn--fill magnetic"><span>Valider ma commande</span></button>
         </form>`;
       const f = $('#checkoutForm');
-      f.addEventListener('change', e => { if (e.target.name === 'mode') { $('#addrField').hidden = e.target.value !== 'livraison'; } });
+      const syncMode = () => {
+        const m = f.elements.mode.value, rf = $('#relayField');
+        if (rf) rf.hidden = m !== 'relais';
+        $('#sumBox').innerHTML = summaryHTML(m);                                           /* les frais de livraison suivent le mode choisi */
+      };
+      f.addEventListener('change', e => { if (e.target.name === 'mode') syncMode(); });
+      if (rOn) {
+        f.elements.relay._ui = $('.relay__search [data-relay-open]');                      /* pour que validate() signale et cible le bouton, pas le champ caché */
+        f.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'oPostal') { e.preventDefault(); openRelay(); } });   /* Entrée dans le code postal ouvre la carte au lieu de valider la commande */
+        if (relay) f.elements.mode.value = 'relais';                                       /* point déjà choisi (retour au panier puis à la commande) */
+        renderRelayChosen();
+      }
+      syncMode();
       f.addEventListener('submit', onCheckout);
     } else if (view === 'done') {
       title.textContent = 'Commande prête';
       const link = sumupLink(order.total), text = orderText(order);
       const ig = `https://ig.me/m/${CFG.instagram}`;
-      const sms = CFG.phone ? `sms:${CFG.phone}?&body=${encodeURIComponent(text)}` : '';
+      const sms = CFG.phone ? `sms:${CFG.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(text)}` : '';
       const mail = CFG.email ? `mailto:${CFG.email}?subject=${encodeURIComponent('Commande ' + order.ref)}&body=${encodeURIComponent(text)}` : '';
       body.innerHTML = `<p class="orderref">Commande ${esc(order.ref)} · ${money(order.total)}</p>
         <div class="steps-pay"><h4>1. Envoyez-moi le récapitulatif</h4>
@@ -427,9 +527,7 @@
             <button type="button" class="btn btn--ghost" data-copy><span>Copier</span></button>
           </div></div>
         <div class="steps-pay"><h4>2. Réglez avec SumUp</h4>
-          ${link
-            ? `<p class="small" style="margin:0">Paiement sécurisé par carte, au montant exact de votre commande.</p><a class="btn btn--sumup" href="${esc(link)}" target="_blank" rel="noopener"><span>Payer ${money(order.total)} avec SumUp</span></a>`
-            : `<p class="small" style="margin:0">Je vous envoie un lien de paiement SumUp de <b>${money(order.total)}</b> après avoir confirmé vos coloris. Vous réglez par carte, en toute sécurité.</p>`}
+          ${payHTML(link)}
         </div>
         <button class="rm" type="button" data-clear style="text-align:center">Vider le panier et fermer</button>`;
       body._ig = ig;
@@ -437,7 +535,7 @@
       title.textContent = 'Montants SumUp';
       const amounts = sumupAmounts(2);
       const have = Object.keys((CFG.sumup && CFG.sumup.links) || {}).map(Number);
-      body.innerHTML = `<p class="small" style="margin:0">À créer dans SumUp (Liens de paiement, montant fixe) puis à coller dans <code>js/config.js</code>. Un lien par montant : le site propose automatiquement le bon lien selon le total du panier (1 ou 2 articles couverts).</p>
+      body.innerHTML = `<p class="small" style="margin:0">À créer dans SumUp (Liens de paiement, montant fixe) puis à coller dans <code>js/config.js</code>. Un lien par montant : le site propose automatiquement le bon lien selon le total de la commande (1 ou 2 articles couverts, avec ou sans les frais de livraison).</p>
         <div class="chips" style="margin:0">${amounts.map(a => `<li style="${have.includes(a) ? 'background:#eef1e0' : ''}">${money(a)}</li>`).join('')}</div>
         <p class="small" style="margin:0">En vert : lien déjà configuré.</p>`;
     }
@@ -451,6 +549,7 @@
     });
     let sums = new Set(units); let cur = new Set(units);
     for (let k = 2; k <= maxItems; k++) { const next = new Set(); cur.forEach(a => units.forEach(b => next.add(a + b))); next.forEach(v => sums.add(v)); cur = next; }
+    if (shipBase) [...sums].forEach(v => sums.add(Math.round((v + shipBase) * 100) / 100));   /* + les frais de livraison (point relais) */
     return [...sums].sort((a, b) => a - b);
   }
 
@@ -471,23 +570,85 @@
   function onCheckout(e) {
     e.preventDefault();
     const f = e.target;
-    const ok = validate(f, {
+    const rules = {
       first: v => v ? '' : 'Votre prénom, s’il vous plaît.',
       last: v => v ? '' : 'Votre nom, s’il vous plaît.',
       phone: v => /^[+\d][\d\s.\-()]{7,}$/.test(v) ? '' : 'Un numéro valide pour vous joindre.',
-      email: v => !v || /^\S+@\S+\.\S+$/.test(v) ? '' : 'Adresse e-mail incomplète.',
-      address: (v, form) => form.elements.mode.value === 'livraison' && !v ? 'Indiquez l’adresse de livraison.' : ''
-    });
-    if (!ok) return;
-    const fd = new FormData(f);
-    order = { ref: orderRef(), lines: cart.map(l => ({ ...l })), total: cartTotal(), first: fd.get('first').trim(), last: fd.get('last').trim(), phone: fd.get('phone').trim(), email: (fd.get('email') || '').trim(), mode: fd.get('mode'), address: (fd.get('address') || '').trim(), note: (fd.get('note') || '').trim() };
-    try { localStorage.setItem('mpc-last-order', JSON.stringify(order)); } catch (_) {}
+      email: v => !v || /^\S+@\S+\.\S+$/.test(v) ? '' : 'Adresse e-mail incomplète.'
+    };
+    if (f.elements.relay) rules.relay = (v, form) => form.elements.mode.value === 'relais' && !relay ? 'Choisissez votre point relais ou locker sur la carte.' : '';
+    if (!validate(f, rules)) return;
+    const fd = new FormData(f), mode = fd.get('mode'), subtotal = cartTotal(), shipping = shipFee(mode);
+    order = { ref: orderRef(), lines: cart.map(l => ({ ...l })), subtotal, shipping, total: Math.round((subtotal + shipping) * 100) / 100, first: fd.get('first').trim(), last: fd.get('last').trim(), phone: fd.get('phone').trim(), email: (fd.get('email') || '').trim(), mode,
+      relay: mode === 'relais' ? relay : null, note: (fd.get('note') || '').trim() };
     view = 'done'; renderDrawer(); $('#dBody').scrollTop = 0;
+  }
+
+  /* formulaire de carte SumUp (Payment Widget) : chargé seulement quand la cliente clique sur « Payer par carte ».
+     Le serveur (paiement-serveur/sumup-worker.js) recalcule le total et crée le paiement ; le navigateur ne voit jamais la clé API. */
+  let sumupSdk = null, sumupCard = null;
+  const loadSumUp = () => sumupSdk || (sumupSdk = new Promise((resolve, reject) => {
+    if (window.SumUpCard) { resolve(); return; }
+    const s = document.createElement('script'); s.src = 'https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js'; s.async = true;
+    s.onload = () => (window.SumUpCard ? resolve() : reject(new Error('sdk')));
+    s.onerror = () => { sumupSdk = null; reject(new Error('sdk')); };
+    document.head.appendChild(s);
+  }));
+  async function startCardPayment() {
+    const api = payApi(), box = $('#payCard'), st = $('#payStatus'), btn = $('[data-pay-card]');
+    if (!api || !box || !order || order.paid) return;
+    const say = (msg, kind) => { st.textContent = msg; st.dataset.kind = kind || ''; };
+    const fail = msg => { say(msg, 'error'); btn.disabled = false; btn.removeAttribute('aria-busy'); };
+    box.hidden = false; btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+    try {
+      say('Préparation du paiement sécurisé…');
+      const lines = order.lines.map(l => ({ pid: l.pid, model: l.model, size: l.size, colors: l.colors, finish: l.finish, qty: l.qty }));
+      const [, res] = await Promise.all([loadSumUp(), fetch(api + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref: order.ref, lines, mode: order.mode }) })]);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkoutId) throw new Error('serveur');
+      if (Math.abs(Number(data.amount) - order.total) > 0.005) throw new Error('montant');   /* le serveur recalcule le total : s'il diffère du panier affiché, on s'arrête */
+      say('Saisissez votre carte : ' + money(order.total) + ' seront débités.');
+      if (sumupCard && sumupCard.unmount) { try { sumupCard.unmount(); } catch (_) { /* déjà retiré */ } }
+      sumupCard = window.SumUpCard.mount({
+        id: 'sumup-card', checkoutId: data.checkoutId, locale: 'fr-FR', country: 'FR',
+        onResponse: async type => {
+          if (type === 'sent') say('Paiement en cours…');
+          else if (type === 'auth-screen') say('Votre banque vous demande de valider le paiement…');
+          else if (type === 'error' || type === 'fail') fail('Le paiement n’a pas abouti. Vérifiez votre carte ou réessayez.');
+          else if (type === 'success') {   /* « success » ne prouve pas le paiement : on demande à SumUp, via le serveur */
+            say('Vérification du paiement…');
+            try {
+              const r = await fetch(api + '/status?id=' + encodeURIComponent(data.checkoutId)), s = await r.json();
+              if (s.paid && Math.abs(Number(s.amount) - order.total) < 0.005) onPaid();
+              else fail('Le paiement n’a pas abouti. Vous pouvez réessayer, ou m’envoyer la commande : je vous enverrai un lien.');
+            } catch (_) { fail('Impossible de vérifier le paiement pour le moment. Écrivez-moi avec le récapitulatif : je vérifierai de mon côté.'); }
+          }
+        }
+      });
+    } catch (err) {
+      fail(err && err.message === 'montant' ? 'Le montant a changé : rouvrez le panier et recommencez.' : 'Le paiement par carte est momentanément indisponible. Envoyez-moi le récapitulatif ci-dessus : je vous enverrai un lien de paiement SumUp.');
+    }
+  }
+  function onPaid() {
+    if (sumupCard && sumupCard.unmount) { try { sumupCard.unmount(); } catch (_) { /* déjà retiré */ } }
+    sumupCard = null;
+    order.paid = true; order.paidAt = Date.now();
+    cart = []; saveCart(); refreshBadges(); renderDrawer(); $('#dBody').scrollTop = 0;
+    toast('Paiement reçu, merci !');
   }
 
   function bindDrawer() {
     const d = $('#drawer');
     d.addEventListener('click', async e => {
+      if (e.target.closest('[data-pay-card]')) { startCardPayment(); return; }
+      if (e.target.closest('[data-relay-open]')) { openRelay(); return; }
+      const rc = e.target.closest('[data-relay-country]');
+      if (rc) {                                                    /* autre pays de livraison : le point choisi n'est plus valable */
+        relayCountry = rc.dataset.relayCountry;
+        if (relay && relay.country.toLowerCase() !== relayCountry) { relay = null; renderRelayChosen(); const b = $('.relay__search [data-relay-open] span'); if (b) b.textContent = 'Voir les points les plus proches'; }
+        $$('[data-relay-country]').forEach(b => b.setAttribute('aria-pressed', String(b === rc)));
+        return;
+      }
       if (e.target.closest('[data-close-drawer]')) { closeDrawer(); return; }
       if (e.target.closest('[data-checkout]')) { view = 'checkout'; renderDrawer(); $('#dBody').scrollTop = 0; return; }
       if (e.target.closest('[data-back]')) { view = 'cart'; renderDrawer(); return; }
@@ -514,6 +675,19 @@
   const custom = { colors: [], assoc: 'mix' };
   const CUSTOM_TYPES = { 'Pochette d’ordinateur / iPad': 'sleeve', 'Sac cabas': 'tote', 'Sac personnalisé': 'bag', 'Panier (format sur mesure)': 'basketRound', 'Chaîne de téléphone': 'strap', 'Autre idée': 'bag' };
   const ASSOC_LABEL = { mix: 'mélangées', duo: 'haut et bas', contrast: 'en contraste' };
+  /* Finitions proposées selon la pièce demandée : mêmes règles que la boutique (MPC_FINISH_RULES).
+     Pochette : bordures seulement ; sac cabas et chaîne de téléphone : couleurs seulement (le champ disparaît) ; sacs : pas de bordure. */
+  const CUSTOM_PRODUCT = { 'Pochette d’ordinateur / iPad': 'pochette', 'Sac cabas': 'cabas', 'Sac personnalisé': 'sac', 'Panier (format sur mesure)': 'panier-rond', 'Chaîne de téléphone': 'cordon', 'Autre idée': 'sac' };
+  function applyFinishRules() {
+    const sel = $('#cFinish'), field = sel.closest('.field');
+    const pid = CUSTOM_PRODUCT[$('#cType').value];                       /* aucune pièce choisie pour l'instant : tout est proposé */
+    const allowed = pid ? finishIds(pid) : FINISHES.map(f => f.id);
+    const idByName = Object.fromEntries(FINISHES.map(f => [f.name, f.id]));
+    [...sel.options].forEach(o => { const ok = allowed.includes(idByName[o.text]); o.hidden = !ok; o.disabled = !ok; });
+    if (sel.options[sel.selectedIndex].disabled) sel.selectedIndex = 0;  /* la finition choisie n'existe plus pour cette pièce : retour à « Sans détail » */
+    field.hidden = !allowed.some(id => id !== 'aucune');
+    if (sel._rebuild) sel._rebuild();
+  }
   let customViewer = null;
   function updateCustomViewer() {
     const type = CUSTOM_TYPES[$('#cType').value] || 'bag';
@@ -533,7 +707,8 @@
     const stage = $('#customViewer');
     customViewer = (window.MPC3D && window.MPC3D.create(stage)) || null;
     if (!customViewer) { stage.hidden = true; $('#customFallback').hidden = false; }
-    $('#cType').addEventListener('change', updateCustomViewer);
+    $('#cType').addEventListener('change', () => { applyFinishRules(); updateCustomViewer(); });
+    applyFinishRules();
     $('#cFinish').addEventListener('change', updateCustomViewer);
     $('#assocPills').addEventListener('click', e => {
       const b = e.target.closest('[data-assoc]'); if (!b) return;
@@ -578,9 +753,9 @@
       });
       if (!ok) return;
       const v = n => f.elements[n].value.trim();
-      const text = `Bonjour Oriana, j’aimerais une demande personnalisée :\n\n• Pièce : ${v('type')}\n${v('dims') ? '• Dimensions / appareil : ' + v('dims') + '\n' : ''}• Couleurs : ${custom.colors.length ? custom.colors.map(c => COLOR[c].name).join(' + ') + (custom.colors.length > 1 ? ' (' + ASSOC_LABEL[custom.assoc] + ')' : '') : 'à définir ensemble'}\n• Finition : ${v('finish')}\n${v('msg') ? '• Mon idée : ' + v('msg') + '\n' : ''}\nPrénom : ${v('name')}\nContact : ${v('contact')}\n\nMerci beaucoup !`;
+      const text = `Bonjour Oriana, j’aimerais une demande personnalisée :\n\n• Pièce : ${v('type')}\n${v('dims') ? '• Dimensions / appareil : ' + v('dims') + '\n' : ''}• Couleurs : ${custom.colors.length ? custom.colors.map(c => COLOR[c].name).join(' + ') + (custom.colors.length > 1 ? ' (' + ASSOC_LABEL[custom.assoc] + ')' : '') : 'à définir ensemble'}\n${f.elements.finish.closest('.field').hidden ? '' : '• Finition : ' + v('finish') + '\n'}${v('msg') ? '• Mon idée : ' + v('msg') + '\n' : ''}\nPrénom : ${v('name')}\nContact : ${v('contact')}\n\nMerci beaucoup !`;
       const sent = $('#customSent');
-      const sms = CFG.phone ? `sms:${CFG.phone}?&body=${encodeURIComponent(text)}` : '';
+      const sms = CFG.phone ? `sms:${CFG.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(text)}` : '';
       const mail = CFG.email ? `mailto:${CFG.email}?subject=${encodeURIComponent('Demande personnalisée')}&body=${encodeURIComponent(text)}` : '';
       sent.innerHTML = `<strong>Votre demande est prête.</strong><textarea class="recap" readonly aria-label="Récapitulatif de la demande">${esc(text)}</textarea>
         <div class="row"><button type="button" class="btn btn--fill" data-csend><span>Envoyer par Instagram</span></button>${sms ? `<a class="btn btn--ghost" href="${sms}"><span>Par SMS</span></a>` : ''}${mail ? `<a class="btn btn--ghost" href="${mail}"><span>Par e-mail</span></a>` : ''}<button type="button" class="btn btn--ghost" data-ccopy><span>Copier</span></button></div>`;
@@ -611,10 +786,12 @@
   const I = 'assets/img/';
   function renderGallery() {
     const items = [
-      ['panier-jaune', 'Panier jaune sur rondelle de bois', 720, 1280], ['sac-bleu-gris', 'Sac bleu-gris sur bois', 720, 1280], ['atelier-vert', 'Un sac vert en cours de création', 720, 1280],
-      ['sac-rouge', 'Sac rouge et rose', 720, 1280], ['pause-cafe', 'Petit panier rose, pause café', 720, 1280], ['sac-blanc-bois', 'Sac blanc cassé', 720, 1280],
-      ['marche', 'Le stand au marché nocturne', 720, 1280], ['paniers-duo-rose', 'Duo de paniers pour la table de salon', 720, 1280], ['sac-noir-main', 'Sac noir, anse à la main', 720, 1280],
-      ['accessoires-fleurs', 'Marguerites brodées et perles', 719, 1280], ['panier-dore', 'Panier à bordure dorée', 720, 1280], ['sac-gris-main', 'Sac mélange gris et noir', 720, 1280]
+      /* retirées à la demande de Justin (9 nov. 2026) : panier jaune, accessoires, panier marron à bordure dorée */
+      ['sac-bleu-gris', 'Sac bleu-gris sur bois', 720, 1280], ['atelier-creation-en-cours', 'Un panier blanc en cours de création', 719, 1280],
+      ['sac-rouge', 'Sac rouge et rose', 720, 1280], ['pause-cafe', 'Petit panier rose, pause café', 720, 1280], ['sac-beige-main', 'Sac beige, anse à la main', 720, 1280],
+      ['sac-blanc-bois', 'Sac blanc cassé', 720, 1280], ['marche', 'Le stand au marché nocturne', 720, 1280], ['paniers-duo-rose', 'Duo de paniers pour la table de salon', 720, 1280],
+      ['sac-noir-main', 'Sac noir, anse à la main', 720, 1280], ['panier-blanc-bois', 'Panier blanc sur rondelle de bois', 720, 1280], ['sac-rose-main', 'Sac rose porté à la main', 720, 1280],
+      ['sac-gris-main', 'Sac mélange gris et noir', 720, 1280]
     ];
     $('#gal').innerHTML = items.map(([n, c, w, h]) => `<figure class="gal__item" data-tilt><img src="${I + n}.jpg" alt="${esc(c)}" loading="lazy" width="${w}" height="${h}" decoding="async"><figcaption>${esc(c)}</figcaption></figure>`).join('');
   }
@@ -628,7 +805,7 @@
 
   /* ---------- Contact ---------- */
   function setupContact() {
-    if (CFG.phone) { $('#coordPhone').hidden = false; const a = $('#phoneLink'); a.href = 'tel:' + CFG.phone.replace(/\s/g, ''); a.textContent = CFG.phone; }
+    if (CFG.phone) { $('#coordPhone').hidden = false; const a = $('#phoneLink'); a.href = 'tel:' + CFG.phone.replace(/\s/g, ''); a.textContent = /^\d{10}$/.test(CFG.phone) ? CFG.phone.replace(/(\d{2})(?=\d)/g, '$1 ') : CFG.phone; }   /* 0650677950 s'affiche 06 50 67 79 50 */
     if (CFG.email) { $('#coordMail').hidden = false; const a = $('#mailLink'); a.href = 'mailto:' + CFG.email; a.textContent = CFG.email; }
     $('#dmBtn').href = `https://ig.me/m/${CFG.instagram}`;
   }
@@ -662,12 +839,16 @@
     btn.setAttribute('aria-controls', list.id);
     const opts = [...sel.options];
     const items = [];
-    opts.forEach((o, i) => {
-      if (o.value === '' && i === 0) return;               /* le « Choisir… » sert de texte indicatif, pas d'option */
-      const li = document.createElement('li'); li.setAttribute('role', 'option'); li.id = `${id}-o${i}`; li.dataset.i = i;
-      if (o.dataset.swatch) { const d = document.createElement('i'); d.className = 'cselect__sw'; d.style.background = o.dataset.swatch; li.appendChild(d); }
-      li.appendChild(document.createTextNode(o.text)); list.appendChild(li); items.push(li);
-    });
+    function build() {                                      /* (re)construit la liste ; les options masquées (o.hidden) n'y figurent pas */
+      list.textContent = ''; items.length = 0;
+      opts.forEach((o, i) => {
+        if (o.hidden || (o.value === '' && i === 0)) return;   /* le « Choisir… » sert de texte indicatif, pas d'option */
+        const li = document.createElement('li'); li.setAttribute('role', 'option'); li.id = `${id}-o${i}`; li.dataset.i = i;
+        if (o.dataset.swatch) { const d = document.createElement('i'); d.className = 'cselect__sw'; d.style.background = o.dataset.swatch; li.appendChild(d); }
+        li.appendChild(document.createTextNode(o.text)); list.appendChild(li); items.push(li);
+      });
+    }
+    build();
     sel.classList.add('native-hidden'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
     wrap.append(btn, list); sel.after(wrap); sel._ui = btn;
     if (label) label.addEventListener('click', e => { e.preventDefault(); btn.focus(); });
@@ -718,6 +899,7 @@
     list.addEventListener('click', e => { const li = e.target.closest('li'); if (li) choose(items.indexOf(li)); });
     list.addEventListener('mousedown', e => e.preventDefault());
     sel.addEventListener('change', sync);
+    sel._rebuild = () => { build(); sync(); };               /* à rappeler après avoir masqué ou réaffiché des options */
     sync();
   }
 
@@ -729,6 +911,7 @@
   $('#cartOpen').addEventListener('click', () => openDrawer('cart'));
   $('#fab').addEventListener('click', () => openDrawer('cart'));
   $('#sumupHelp').addEventListener('click', () => openDrawer('sumup'));
+  $$('[data-ship-note]').forEach(el => { el.hidden = !shipBase; const f = $('[data-ship-fee]', el); if (f) f.textContent = money(shipBase); });   /* phrase « la livraison coûte… » de la page, alimentée par config.js */
   window.addEventListener('resize', refreshBadges);
 
   window.MPC = {
