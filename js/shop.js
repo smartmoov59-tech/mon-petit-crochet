@@ -12,6 +12,7 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = n => (Math.round(n * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }) + ' €';
   const byId = id => PRODUCTS.find(p => p.id === id);
+  const PAGE = (document.body && document.body.dataset && document.body.dataset.page) || 'home';   /* « stock » sur en-stock.html : seulement les pièces en stock, le panier et la commande */
 
   /* ---------- Couleurs : style d'une pastille ---------- */
   function swatchBg(id) {
@@ -59,12 +60,40 @@
   /* finitions autorisées par pièce (règles de la gérante, voir MPC_FINISH_RULES dans data.js) */
   const finishIds = pid => (window.MPC_FINISH_RULES || {})[pid] || FINISHES.map(f => f.id);
   const hasFinish = p => !p.quote && finishIds(p.id).some(id => id !== 'aucune');
+  /* chaînes de sac (40 cm) : elles ne se proposent que si elles vont avec les tons des coloris choisis (Oriana ne mélange pas les tons froids et chauds : MPC_TONES et MPC_chainOk, data.js) */
+  const isChain = fid => { const f = FINISHES.find(x => x.id === fid); return !!(f && f.chain); };
+  const chainOk = (fid, colors) => (window.MPC_chainOk ? window.MPC_chainOk(fid, colors) : true);
 
   /* ---------- Panier (localStorage) ---------- */
   const KEY = 'mpc-cart-v1';
   let cart = [];
   try { cart = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { cart = []; }
   const saveCart = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (e) {} };
+  /* Nouveautés et pièces disponibles ajoutées par Oriana (js/content-apply.js ; liste vide tant qu'elle n'en a pas ajouté) */
+  const ARTS = Array.isArray(window.MPC_ARTICLES) ? window.MPC_ARTICLES : [];
+  const artById = id => ARTS.find(a => a.id === id);
+  const artMax = a => (a.kind === 'dispo' ? a.qty : 20);
+  const artSold = a => a.kind === 'dispo' && a.qty < 1;
+  /* Panier relu depuis le navigateur : remis d'équerre (prix modifiés par Oriana, pièces vendues, retirées ou masquées depuis) */
+  let cartNote = '';
+  cart = cart.filter(l => {
+    if (!l || typeof l !== 'object' || !Number.isInteger(l.qty) || l.qty < 1) return false;
+    if (l.article) {
+      const a = artById(String(l.pid).slice(2));
+      if (!a || artSold(a)) { cartNote = 'Une pièce de votre panier n’est plus disponible : elle a été retirée.'; return false; }
+      l.unit = a.price; l.name = a.name; l.photo = a.photos[0] || ''; l.kind = a.kind; l.max = artMax(a); l.qty = Math.min(l.max, l.qty);
+      return true;
+    }
+    const p = byId(l.pid);
+    if (!p || p.hidden || p.quote) { cartNote = 'Une pièce de votre panier n’est plus proposée : elle a été retirée.'; return false; }
+    if (isChain(l.finish) && !chainOk(l.finish, l.colors)) {   /* chaîne qui ne va pas (ou plus) avec les tons des coloris : retirée plutôt que refusée au paiement */
+      l.finish = 'aucune'; l.key = [p.id, l.model, l.size, (l.colors || []).join('+'), l.finish].join('|');
+      cartNote = 'La chaîne d’un sac de votre panier ne va pas avec ses couleurs : elle a été retirée.';
+    }
+    l.unit = unitPrice(p, l);   /* le prix a pu changer depuis que la pièce a été ajoutée */
+    return true;
+  });
+  saveCart();
   const cartCount = () => cart.reduce((n, l) => n + l.qty, 0);
   const cartTotal = () => cart.reduce((n, l) => n + l.unit * l.qty, 0);
   /* Frais de livraison : un montant fixe par commande (CFG.shipping), dû seulement pour les modes qui livrent (aujourd'hui : le point relais ou locker, la livraison à domicile n'existe plus) */
@@ -82,7 +111,7 @@
   /* ---------- Grille produits ---------- */
   function renderFilters() {
     const box = $('#filters');
-    box.innerHTML = window.MPC_FILTERS.map((f, i) => `<button class="chip-btn" type="button" data-f="${f.id}" aria-pressed="${i === 0}">${esc(f.name)}</button>`).join('');
+    box.innerHTML = window.MPC_FILTERS.filter(f => f.id === 'all' || PRODUCTS.some(p => !p.hidden && p.cat === f.id)).map((f, i) => `<button class="chip-btn" type="button" data-f="${f.id}" aria-pressed="${i === 0}">${esc(f.name)}</button>`).join('');
     box.addEventListener('click', e => {
       const b = e.target.closest('[data-f]'); if (!b) return;
       $$('[data-f]', box).forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -120,7 +149,7 @@
 
   function renderGrid() {
     const grid = $('#productGrid');
-    grid.innerHTML = PRODUCTS.map(cardHTML).join('');
+    grid.innerHTML = PRODUCTS.filter(p => !p.hidden).map(cardHTML).join('');
     grid.addEventListener('click', e => {
       const card = e.target.closest('.card'); if (!card) return;
       const p = byId(card.dataset.id);
@@ -141,7 +170,7 @@
   /* « Ajouter au panier » depuis la carte : coloris et taille choisis sur la carte, modèle simple (1 couleur) */
   function quickAdd(p, card) {
     const sel = { model: p.models[0].id, size: p.sizes ? (card.dataset.psize || p.sizes[0].id) : null, colors: [card.dataset.pick || p.defaultColors[0]], finish: 'aucune', qty: 1 };
-    pushLine(p, sel);
+    if (pushLine(p, sel) === false) return;
     const d = describe(p, sel);
     toast(`Ajouté : ${p.name}${d.size ? ' · ' + d.size : ''} · ${d.colors[0]}`);
     const b = $('[data-add]', card); if (b) { b.classList.add('is-added'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('is-added'), 1400); }
@@ -154,6 +183,132 @@
     card.dataset.pick = cid;
     if (photo) { img.src = 'assets/img/' + photo + '.jpg'; card.classList.remove('is-preview'); const gen = photo.startsWith('gen/'); card.classList.toggle('is-gen', gen); card.classList.toggle('is-real', !gen); const fr = (window.MPC_FRAME || {})[photo] || {}; img.style.setProperty('--pos', fr.pos || '50% 74%'); img.style.setProperty('--z', fr.zoom || 1); }
     else { openProduct(p.id, cid); }   /* pas de photo dans ce coloris : le configurateur 3D recolore la vraie pièce */
+  }
+
+  /* ---------- Nouveautés et pièces disponibles (articles ajoutés par Oriana dans son espace pro) ---------- */
+  function artBadges(a) {
+    const b = [];
+    if (a.isNew) b.push(['new', 'Nouveau']);
+    if (a.kind !== 'dispo') b.push(['order', 'Sur commande']);
+    else if (a.qty < 1) b.push(['sold', 'Vendu']);
+    else b.push([a.qty === 1 ? 'one' : 'stock', a.qty === 1 ? 'Pièce unique' : 'Disponible']);
+    return b;
+  }
+  function artCardHTML(a, fast) {                               /* fast : carte de la page « En stock » (mention de l'expédition sous 24 à 48 h) */
+    const sold = artSold(a);
+    return `<article class="card card--art${sold ? ' is-sold' : ''}" data-art="${esc(a.id)}">
+      <div class="card__media"><div class="badges">${artBadges(a).map(([k, t]) => `<span class="badge badge--${k}">${esc(t)}</span>`).join('')}</div>${a.photos[0] ? `<img class="card__photo" src="${esc(a.photos[0])}" alt="${esc(a.name)}" loading="lazy" width="720" height="900" decoding="async">` : ''}</div>
+      <div class="card__body">
+        <div class="card__row"><h3>${esc(a.name)}</h3><span class="price">${money(a.price)}</span></div>
+        ${a.details ? `<p class="card__tag">${esc(a.details)}</p>` : ''}
+        ${fast && !sold ? '<p class="card__ship">Expédiée sous 24 à 48 h</p>' : ''}
+        <div class="card__cta">${sold ? '<button type="button" class="btn btn--ghost" disabled><span>Vendu</span></button>' : `<button type="button" class="btn btn--fill magnetic" data-art-add="${esc(a.id)}"><span>Ajouter au panier</span></button>`}<button type="button" class="btn btn--ghost btn--more" data-art-open="${esc(a.id)}"><span>Voir en détail</span></button></div>
+      </div>
+    </article>`;
+  }
+  /* une grille de cartes : « Ajouter au panier », « Voir en détail », ou un clic sur la carte */
+  function bindArtGrid(grid) {
+    grid.addEventListener('click', e => {
+      const add = e.target.closest('[data-art-add]'), open = e.target.closest('[data-art-open]'), card = e.target.closest('.card--art');
+      if (add) { quickAddArticle(artById(add.dataset.artAdd), add); return; }
+      if (open) { openArticle(open.dataset.artOpen); return; }
+      if (card && !e.target.closest('button')) openArticle(card.dataset.art);           /* un clic sur la carte ouvre la fiche */
+    });
+  }
+  /* Accueil : seulement les nouveautés sur commande ; les pièces en stock ont leur propre page (en-stock.html) et un bandeau sur l'accueil */
+  function renderArticles() {
+    const sec = $('#disponibles'), grid = $('#artGrid');
+    if (!sec || !grid) return;
+    const news = ARTS.filter(a => a.kind !== 'dispo');
+    if (!news.length) { sec.remove(); return; }                                          /* rien à montrer : la section n'existe pas (motion.js ne la verra jamais) */
+    grid.innerHTML = news.map(a => artCardHTML(a)).join('');
+    sec.hidden = false;
+    $$('.nav, #menu nav').forEach(n => n.insertAdjacentHTML('afterbegin', '<a href="#disponibles">Nouveautés</a>'));
+    bindArtGrid(grid);
+  }
+
+  /* ---------- Pièces en stock : prêtes à partir, expédiées sous 24 à 48 h (page en-stock.html, bandeau de l'accueil) ---------- */
+  const STOCK_CATS = [['sacs', 'Sacs'], ['paniers', 'Paniers'], ['cordons', 'Chaînes de téléphone'], ['autres', 'Autres pièces']];
+  const stockItems = () => ARTS.filter(a => a.kind === 'dispo' && !artSold(a));      /* les pièces vendues disparaissent de la page */
+  function renderStockPage() {
+    const grid = $('#stockGrid'); if (!grid) return;
+    const all = stockItems(), box = $('#stockFilters'), count = $('#stockCount'), empty = $('#stockEmpty');
+    let cat = 'all';
+    if (!all.length) { grid.hidden = true; if (empty) empty.hidden = false; if (count) count.hidden = true; return; }
+    const paint = () => {
+      const list = all.filter(a => cat === 'all' || a.cat === cat);
+      grid.innerHTML = list.map(a => artCardHTML(a, true)).join('');
+      if (count) count.textContent = list.length + (list.length > 1 ? ' pièces prêtes à partir' : ' pièce prête à partir');
+    };
+    const present = STOCK_CATS.filter(([id]) => all.some(a => a.cat === id));
+    if (box && present.length > 1) {                                                    /* des filtres seulement s'il y a plusieurs types de pièces */
+      box.innerHTML = [['all', 'Tout voir']].concat(present).map(([id, t]) => `<button class="chip-btn" type="button" data-cat="${id}" aria-pressed="${id === 'all'}">${esc(t)}<small>${id === 'all' ? all.length : all.filter(a => a.cat === id).length}</small></button>`).join('');
+      box.hidden = false;
+      box.addEventListener('click', e => {
+        const b = e.target.closest('[data-cat]'); if (!b) return;
+        cat = b.dataset.cat; $$('[data-cat]', box).forEach(x => x.setAttribute('aria-pressed', String(x === b))); paint();
+      });
+    }
+    bindArtGrid(grid);
+    paint();
+  }
+  /* Accueil : bandeau « En stock » (seulement s'il y a des pièces) et liens vers la page */
+  function renderStockTeaser() {
+    const sec = $('#enStock'); if (!sec) return;
+    const all = stockItems();
+    if (!all.length) { sec.remove(); return; }
+    const n = $('#enStockCount'), th = $('#enStockThumbs');
+    if (n) n.textContent = all.length + (all.length > 1 ? ' pièces' : ' pièce');
+    if (th) th.innerHTML = all.filter(a => a.photos[0]).slice(0, 4).map(a => `<img src="${esc(a.photos[0])}" alt="" loading="lazy" width="240" height="300" decoding="async">`).join('');
+    sec.hidden = false;
+    $$('.nav, #menu nav').forEach(nav => nav.insertAdjacentHTML('afterbegin', '<a href="en-stock.html">En stock</a>'));
+  }
+  /* ajoute une pièce au panier ; false si c'est impossible (commandes en pause, vendue, déjà toutes dans le panier) */
+  function addArticleLine(a) {
+    if (CFG.ordersPaused) { toast(CFG.ordersPaused.message); return false; }
+    if (!a || artSold(a)) { toast('Cette pièce n’est plus disponible.'); return false; }
+    const key = 'a:' + a.id, max = artMax(a), found = cart.find(l => l.key === key);
+    if (found) {
+      if (found.qty >= max) { toast(max === 1 ? 'Cette pièce unique est déjà dans votre panier.' : 'Vous avez pris toutes les pièces disponibles.'); return false; }
+      found.qty++;
+    } else cart.push({ key, pid: key, article: true, name: a.name, photo: a.photos[0] || '', kind: a.kind, model: null, size: null, colors: [], finish: '', qty: 1, unit: a.price, max });
+    saveCart(); refreshBadges();
+    return true;
+  }
+  function quickAddArticle(a, btn) {
+    if (!addArticleLine(a)) return;
+    toast('Ajouté : ' + a.name);
+    if (btn) { btn.classList.add('is-added'); clearTimeout(btn._t); btn._t = setTimeout(() => btn.classList.remove('is-added'), 1400); }
+  }
+  const AM = { a: null, last: null };
+  function openArticle(id) {
+    const a = artById(id), el = $('#artModal'); if (!a || !el) return;
+    AM.a = a; AM.last = document.activeElement;
+    $('#amBadge').textContent = artBadges(a).map(b => b[1]).join(' · ') + (a.kind === 'dispo' && !artSold(a) ? ' · Expédiée sous 24 à 48 h' : '');
+    $('#amTitle').textContent = a.name;
+    $('#amDesc').textContent = a.desc;
+    $('#amDetails').textContent = a.details;
+    $('#amPrice').textContent = money(a.price);
+    $('#amMain').innerHTML = a.photos[0] ? `<img src="${esc(a.photos[0])}" alt="${esc(a.name)}">` : '';
+    $('#amThumbs').innerHTML = a.photos.length > 1 ? a.photos.map((p, i) => `<button class="thumb" type="button" data-am-thumb="${esc(p)}" aria-pressed="${i === 0}" aria-label="Photo ${i + 1}"><img src="${esc(p)}" alt="" loading="lazy"></button>`).join('') : '';
+    const add = $('#amAdd'); add.disabled = artSold(a); $('span', add).textContent = artSold(a) ? 'Vendu' : 'Ajouter au panier';
+    el.hidden = false; lock();
+    requestAnimationFrame(() => el.classList.add('is-open'));
+    setTimeout(() => $('.modal__close', el).focus(), 60);
+  }
+  function closeArticle() {
+    const el = $('#artModal'); if (!el || el.hidden) return;
+    el.classList.remove('is-open');
+    setTimeout(() => { el.hidden = true; unlock(); AM.last && AM.last.focus && AM.last.focus(); }, 450);
+  }
+  function bindArticleModal() {
+    const el = $('#artModal'); if (!el) return;
+    el.addEventListener('click', e => {
+      if (e.target.closest('[data-am-close]')) { closeArticle(); return; }
+      const th = e.target.closest('[data-am-thumb]');
+      if (th && AM.a) { $$('[data-am-thumb]', el).forEach(b => b.setAttribute('aria-pressed', b === th)); $('#amMain').innerHTML = `<img src="${esc(th.dataset.amThumb)}" alt="${esc(AM.a.name)}">`; }
+    });
+    $('#amAdd').addEventListener('click', () => { if (AM.a && addArticleLine(AM.a)) { closeArticle(); setTimeout(() => openDrawer('cart'), 380); toast('Ajouté au panier'); } });
   }
 
   /* ---------- Configurateur ---------- */
@@ -188,6 +343,26 @@
     setTimeout(() => { el.hidden = true; unlock(); M.last && M.last.focus && M.last.focus(); }, 450);
   }
 
+  /* bloc « Détails décoratifs » : refait quand les coloris changent, car une chaîne de sac n'est proposée que si elle va avec leurs tons (une chaîne devenue impossible est retirée) */
+  function finishBlockHTML(p, s) {
+    const m = modelOf(p, s.model), cols = s.colors.slice(0, m.colors);
+    const base = m.forceFinish ? FINISHES.filter(f => m.forceFinish.includes(f.id)) : FINISHES.filter(f => finishIds(p.id).includes(f.id));
+    const list = base.filter(f => !f.chain || chainOk(f.id, cols));
+    if (m.forceFinish && !m.forceFinish.includes(s.finish)) s.finish = m.forceFinish[0];
+    else if (!list.some(f => f.id === s.finish)) s.finish = 'aucune';
+    const chains = base.some(f => f.chain), fits = list.some(f => f.chain);
+    const note = !chains ? '' : isChain(s.finish) ? 'La chaîne de 40 cm s’ajoute à la pièce pour la porter à l’épaule : elle n’apparaît pas dans l’aperçu.'
+      : fits ? 'Chaîne de 40 cm pour porter le sac à l’épaule. ' + (window.MPC_CHAIN_RULE || '') : 'Pas de chaîne avec un mélange de tons chauds et froids.';
+    return `<div class="opt"><div class="opt__title">Détails décoratifs<em>+${money(CFG.finishSurcharge)}</em></div><div class="pills pills--row" role="group" aria-label="Finition">` +
+      list.map(f => `<button type="button" class="pill" data-finish="${f.id}" aria-pressed="${f.id === s.finish}"><b>${esc(f.name)}</b></button>`).join('') + `</div>` +
+      (note ? `<p class="small" style="margin:.55rem 0 0">${esc(note)}</p>` : '') + `</div>`;
+  }
+  function syncFinishBox(refocus) {
+    const box = $('#mFinishBox'); if (!box) return;
+    box.innerHTML = finishBlockHTML(M.p, M.sel);
+    if (refocus) { const b = $('[data-finish="' + M.sel.finish + '"]', box); if (b) b.focus(); }   /* le clavier garde sa place après la mise à jour du bloc */
+  }
+
   function buildOptions() {
     const p = M.p, s = M.sel, box = $('#mOptions'); let h = '', hc = '';
     if (p.models.length > 1) {
@@ -211,12 +386,7 @@
         `</div></div>`;
     }
     $('#mColors').innerHTML = hc;
-    if (hasFinish(p)) {
-      const list = m.forceFinish ? FINISHES.filter(f => m.forceFinish.includes(f.id)) : FINISHES.filter(f => finishIds(p.id).includes(f.id));
-      if (m.forceFinish && !m.forceFinish.includes(s.finish)) s.finish = m.forceFinish[0];
-      h += `<div class="opt"><div class="opt__title">Détails décoratifs<em>+${money(CFG.finishSurcharge)}</em></div><div class="pills pills--row" role="group" aria-label="Finition">` +
-        list.map(f => `<button type="button" class="pill" data-finish="${f.id}" aria-pressed="${f.id === s.finish}"><b>${esc(f.name)}</b></button>`).join('') + `</div></div>`;
-    }
+    if (hasFinish(p)) h += `<div id="mFinishBox">${finishBlockHTML(p, s)}</div>`;
     h += `<p class="small" style="margin-top:0">Coloris selon arrivage : je le confirme avant de commencer. Les photos « Mes pièces déjà réalisées » sont sous l’aperçu.</p>`;
     box.innerHTML = h;
   }
@@ -282,8 +452,8 @@
       const model = e.target.closest('[data-model]'), size = e.target.closest('[data-size]'), sw = e.target.closest('.swatch'), fin = e.target.closest('[data-finish]'), th = e.target.closest('[data-thumb]');
       if (model) { s.model = model.dataset.model; const m = modelOf(p, s.model); if (m.colors > 1 && !s.colors[1]) s.colors[1] = p.defaultColors[1]; buildOptions(); setThumbSvg(); }
       else if (size) { s.size = size.dataset.size; $$('[data-size]').forEach(b => b.setAttribute('aria-pressed', b === size)); setThumbSvg(); }
-      else if (sw) { const slot = +sw.closest('.swatch-grid').dataset.slot; s.colors[slot] = sw.dataset.c; setThumbSvg(); }
-      else if (fin) { s.finish = fin.dataset.finish; $$('[data-finish]').forEach(b => b.setAttribute('aria-pressed', b === fin)); setThumbSvg(); }
+      else if (sw) { const slot = +sw.closest('.swatch-grid').dataset.slot; s.colors[slot] = sw.dataset.c; syncFinishBox(); setThumbSvg(); }
+      else if (fin) { s.finish = fin.dataset.finish; $$('[data-finish]').forEach(b => b.setAttribute('aria-pressed', b === fin)); syncFinishBox(true); setThumbSvg(); }
       else if (th) {
         $$('.thumb').forEach(b => b.setAttribute('aria-pressed', b === th));
         if (th.dataset.thumb === 'svg') showSvgPreview();
@@ -307,6 +477,7 @@
   }
 
   function pushLine(p, s) {
+    if (CFG.ordersPaused) { toast(CFG.ordersPaused.message); return false; }   /* commandes en pause (réglage d'Oriana) */
     const m = modelOf(p, s.model);
     const colors = s.colors.slice(0, m.colors);
     const key = [p.id, s.model, s.size, colors.join('+'), s.finish].join('|');
@@ -315,11 +486,12 @@
     if (found) found.qty += s.qty;
     else cart.push({ key, pid: p.id, model: s.model, size: s.size, colors, finish: s.finish, qty: s.qty, unit });
     saveCart(); refreshBadges();
+    return true;
   }
 
   function addToCart() {
     const p = M.p, s = M.sel;
-    pushLine(p, s);
+    if (pushLine(p, s) === false) return;
     closeModal();
     setTimeout(() => openDrawer('cart'), 380);
     toast('Ajouté au panier');
@@ -342,6 +514,7 @@
   }
 
   function lineThumb(l) {
+    if (l.article) return l.photo ? `<img src="${esc(l.photo)}" alt="" loading="lazy">` : '';
     const p = byId(l.pid);
     const photo = l.colors.length === 1 && p.photosByColor[l.colors[0]];
     if (photo) return `<img src="assets/img/${photo}.jpg" alt="" loading="lazy">`;
@@ -349,6 +522,20 @@
   }
 
   function lineHTML(l, i) {
+    if (l.article) {
+      return `<div class="oline" data-i="${i}">
+      <div class="oline__img">${lineThumb(l)}</div>
+      <div>
+        <h3>${esc(l.name)}</h3>
+        <p class="oline__meta">${l.kind === 'dispo' ? (l.max === 1 ? 'Pièce unique, prête à partir' : 'Pièce disponible, prête à partir') : 'Nouveauté, crochetée pour vous'}</p>
+        <div class="oline__row">
+          ${l.max > 1 ? `<div class="qty qty--sm" role="group" aria-label="Quantité"><button type="button" data-dec aria-label="Moins">−</button><output>${l.qty}</output><button type="button" data-inc aria-label="Plus">+</button></div>` : '<span></span>'}
+          <strong>${money(l.unit * l.qty)}</strong>
+        </div>
+        <button type="button" class="rm" data-rm>Retirer</button>
+      </div>
+    </div>`;
+    }
     const p = byId(l.pid), d = describe(p, { model: l.model, size: l.size, colors: l.colors, finish: l.finish });
     const chips = l.colors.map(c => `<i style="background:${swatchBg(c)}"></i>`).join('');
     return `<div class="oline" data-i="${i}">
@@ -395,6 +582,7 @@
 
   function orderText(o) {
     const lines = o.lines.map(l => {
+      if (l.article) return `• ${l.qty} × ${l.name} (${l.kind === 'dispo' ? 'pièce disponible' : 'nouveauté, sur commande'}) → ${money(l.unit * l.qty)}`;
       const p = byId(l.pid), d = describe(p, l);
       return `• ${l.qty} × ${p.name} : ${d.model}${d.size ? ', ' + d.size : ''}, couleur${d.colors.length > 1 ? 's' : ''} ${d.colors.join(' + ')}${d.finish ? ', ' + d.finish + ' (+' + money(CFG.finishSurcharge) + ')' : ''} → ${money(l.unit * l.qty)}`;
     }).join('\n');
@@ -404,8 +592,21 @@
   }
 
   /* ---------- Paiement SumUp : liens (sans serveur) ou carte directement dans le panier (mode clés API : paiement-serveur/) ---------- */
-  const payApi = () => String((CFG.sumup && CFG.sumup.checkoutEndpoint) || '').replace(/\/+$/, '');
+  /* Le site demande au serveur de commandes « êtes-vous prêt ? » (adresse sumup.checkoutEndpoint ; réponse oui ou non, jamais une clé) : il n'active le paiement par carte
+     dans le panier (pay) et les commandes automatiques (auto : e-mails, bordereau, suivi) que si le serveur répond oui, c'est-à-dire quand toutes les clés sont posées chez Cloudflare.
+     Tant que ce n'est pas le cas, ou si le serveur ne répond pas, le site garde son fonctionnement habituel (récapitulatif à envoyer à Oriana + lien de paiement).
+     sumup.detect = false : on ne pose aucune question au serveur et on suit seulement sumup.autoOrders (réglage à la main). */
+  const SUMUP = CFG.sumup || {}, payEndpoint = String(SUMUP.checkoutEndpoint || '').replace(/\/+$/, ''), detect = !!payEndpoint && SUMUP.detect !== false;
+  const live = { pay: false, auto: false };
+  if (detect) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 6000);
+    fetch(payEndpoint + '/', { cache: 'no-store', signal: ctl.signal }).then(r => (r.ok ? r.json() : {})).then(d => { live.pay = !!d && d.pay === true; live.auto = live.pay && d.auto === true; }).catch(() => { /* pas de réponse : mode habituel */ }).finally(() => clearTimeout(timer));
+  }
+  const payApi = () => (payEndpoint && (!detect || live.pay) ? payEndpoint : '');
+  /* « commandes automatiques » : le serveur de commandes envoie tout seul la commande à Oriana (avec le bordereau) et les e-mails à la cliente. Activé dans js/config.js (sumup.autoOrders) seulement quand ce serveur est complètement réglé. */
+  const autoOrders = () => !!(payApi() && (detect ? live.auto : SUMUP.autoOrders));
   function payHTML(link) {
+    if (order.paid && autoOrders()) return `<div class="paid"><b>Paiement reçu, merci !</b><p class="small" style="margin:0">${money(order.total)} réglés par carte via SumUp. Oriana a bien reçu votre commande. Une confirmation arrive par e-mail à ${esc(order.email)} (pensez à regarder vos courriers indésirables si vous ne la voyez pas), puis le numéro de suivi quand votre colis part.</p></div>`;
     if (order.paid) return `<div class="paid"><b>Paiement reçu, merci !</b><p class="small" style="margin:0">${money(order.total)} réglés par carte via SumUp. Envoyez-moi le récapitulatif ci-dessus : c’est lui qui me dit ce que vous avez choisi.</p></div>`;
     if (payApi()) return `<p class="small" style="margin:0">Paiement sécurisé par carte, au montant exact de votre commande, directement ici (SumUp).</p>
       <button class="btn btn--sumup" type="button" data-pay-card><span>Payer ${money(order.total)} par carte</span></button>
@@ -417,7 +618,7 @@
   }
 
   /* ---------- Livraison en point relais ou locker Mondial Relay (sélecteur Sendcloud, js/relais.js) ---------- */
-  const RL = window.MPC_RELAY, relayOn = () => !!(RL && RL.enabled());
+  const RL = window.MPC_RELAY, relayOn = () => !!(RL && RL.enabled()) && !(CFG.modesOn && CFG.modesOn.relais === false);   /* Oriana peut retirer ce mode depuis son espace pro */
   function relayFieldHTML() {
     const cs = RL.countries;
     return `<div class="field relay" id="relayField" hidden>
@@ -474,25 +675,29 @@
     if (view === 'cart') {
       title.textContent = 'Votre panier';
       if (!cart.length) { body.innerHTML = `<div class="empty"><p>Votre panier est vide.</p><button class="btn btn--fill" type="button" data-close-drawer><span>Découvrir la boutique</span></button></div>`; return; }
-      body.innerHTML = cart.map(lineHTML).join('') + summaryHTML() +
-        `<button class="btn btn--fill magnetic" type="button" data-checkout><span>Passer la commande</span></button>
-         <p class="small" style="margin:0;text-align:center">Aucun paiement à cette étape.</p>`;
+      body.innerHTML = cart.map(lineHTML).join('') + summaryHTML() + (CFG.ordersPaused
+        ? `<p class="paused" role="note">${esc(CFG.ordersPaused.message)}</p>`
+        : `<button class="btn btn--fill magnetic" type="button" data-checkout><span>Passer la commande</span></button>
+         <p class="small" style="margin:0;text-align:center">Aucun paiement à cette étape.</p>`);
     } else if (view === 'checkout') {
       title.textContent = 'Votre commande';
       const rOn = relayOn(); if (rOn && !relayCountry) relayCountry = RL.countries[0];
-      body.innerHTML = `<button class="rm" type="button" data-back style="text-align:left">← Retour au panier</button><div id="sumBox">${summaryHTML('ensemble')}</div>
+      const mOn = CFG.modesOn || {}, offerMain = mOn.main !== false, offerEns = mOn.ensemble !== false || (!rOn && !offerMain);   /* modes proposés (réglage d'Oriana) ; au moins un reste toujours disponible */
+      const dflt = offerEns ? 'ensemble' : (offerMain ? 'main' : 'relais'), api = !!payApi();
+      body.innerHTML = `<button class="rm" type="button" data-back style="text-align:left">← Retour au panier</button><div id="sumBox">${summaryHTML(dflt)}</div>
         <form class="cform" id="checkoutForm" novalidate>
           <div class="field two"><div><label for="oFirst">Prénom</label><input id="oFirst" name="first" autocomplete="given-name" required><span class="err" data-err="first"></span></div>
           <div><label for="oLast">Nom</label><input id="oLast" name="last" autocomplete="family-name" required><span class="err" data-err="last"></span></div></div>
           <div class="field"><label for="oPhone">Téléphone</label><input id="oPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required><span class="err" data-err="phone"></span></div>
-          <div class="field"><label for="oMail">E-mail <small>(facultatif)</small></label><input id="oMail" name="email" type="email" autocomplete="email"><span class="err" data-err="email"></span></div>
+          <div class="field"><label for="oMail">E-mail <small>${api ? '(pour la confirmation et le suivi du colis)' : '(facultatif)'}</small></label><input id="oMail" name="email" type="email" autocomplete="email"${api ? ' required' : ''}><span class="err" data-err="email"></span></div>
           <div class="field"><span class="label">Remise de la pièce</span>
             <div class="mode${rOn ? ' mode--relay' : ''}" role="radiogroup" aria-label="Remise de la pièce">
-              ${rOn ? `<label><input type="radio" name="mode" value="relais"><span>Livraison en point relais</span></label>` : ''}
-              <label><input type="radio" name="mode" value="main"><span>En main propre</span></label>
-              <label><input type="radio" name="mode" value="ensemble" checked><span>On voit ensemble</span></label>
+              ${rOn ? `<label><input type="radio" name="mode" value="relais"${dflt === 'relais' ? ' checked' : ''}><span>Livraison en point relais</span></label>` : ''}
+              ${offerMain ? `<label><input type="radio" name="mode" value="main"${dflt === 'main' ? ' checked' : ''}><span>En main propre</span></label>` : ''}
+              ${offerEns ? `<label><input type="radio" name="mode" value="ensemble"${dflt === 'ensemble' ? ' checked' : ''}><span>On voit ensemble</span></label>` : ''}
             </div></div>          ${rOn ? relayFieldHTML() : ''}
           <div class="field"><label for="oNote">Un mot pour moi <small>(facultatif)</small></label><textarea id="oNote" name="note" rows="3" placeholder="Une précision sur un coloris, une date souhaitée…"></textarea></div>
+          ${api ? '<p class="small" style="margin:0">Vous recevrez par e-mail la confirmation de votre commande, le numéro de suivi du colis, puis une seule demande d’avis après réception.</p>' : ''}
           <button type="submit" class="btn btn--fill magnetic"><span>Valider ma commande</span></button>
         </form>`;
       const f = $('#checkoutForm');
@@ -516,16 +721,27 @@
       const ig = `https://ig.me/m/${CFG.instagram}`;
       const sms = CFG.phone ? `sms:${CFG.phone.replace(/\s/g, '')}?&body=${encodeURIComponent(text)}` : '';
       const mail = CFG.email ? `mailto:${CFG.email}?subject=${encodeURIComponent('Commande ' + order.ref)}&body=${encodeURIComponent(text)}` : '';
-      body.innerHTML = `<p class="orderref">Commande ${esc(order.ref)} · ${money(order.total)}</p>
-        <div class="steps-pay"><h4>1. Envoyez-moi le récapitulatif</h4>
-          <p class="small" style="margin:0">Ce message me transmet votre commande : elle est prise en compte dès que je le reçois.</p>
-          <textarea class="recap" readonly aria-label="Récapitulatif de la commande">${esc(text)}</textarea>
+      const recapBlock = `<textarea class="recap" readonly aria-label="Récapitulatif de la commande">${esc(text)}</textarea>
           <div class="row">
             <button type="button" class="btn btn--fill" data-send="ig"><span>Envoyer par Instagram</span></button>
             ${sms ? `<a class="btn btn--ghost" href="${sms}"><span>Par SMS</span></a>` : ''}
             ${mail ? `<a class="btn btn--ghost" href="${mail}"><span>Par e-mail</span></a>` : ''}
             <button type="button" class="btn btn--ghost" data-copy><span>Copier</span></button>
-          </div></div>
+          </div>`;
+      body.innerHTML = autoOrders()
+        /* commandes automatiques : la cliente règle, et tout le reste (message à Oriana, bordereau, e-mails) part tout seul ; le récapitulatif ne sert qu'en cas de souci de paiement */
+        ? `<p class="orderref">Commande ${esc(order.ref)} · ${money(order.total)}</p>
+        <div class="steps-pay"><h4>Réglez votre commande</h4>
+          <p class="small" style="margin:0">${order.paid ? '' : 'Dès le paiement, Oriana reçoit votre commande et vous recevez la confirmation par e-mail (' + esc(order.email) + '), puis le numéro de suivi de votre colis.'}</p>
+          ${payHTML(link)}
+        </div>
+        ${order.paid ? '' : `<details class="steps-pay"><summary>Un souci avec le paiement par carte ?</summary>
+          <p class="small" style="margin:.6rem 0">Envoyez-moi votre commande par message : je vous enverrai un lien de paiement.</p>${recapBlock}</details>`}
+        <button class="rm" type="button" data-clear style="text-align:center">Vider le panier et fermer</button>`
+        : `<p class="orderref">Commande ${esc(order.ref)} · ${money(order.total)}</p>
+        <div class="steps-pay"><h4>1. Envoyez-moi le récapitulatif</h4>
+          <p class="small" style="margin:0">Ce message me transmet votre commande : elle est prise en compte dès que je le reçois.</p>
+          ${recapBlock}</div>
         <div class="steps-pay"><h4>2. Réglez avec SumUp</h4>
           ${payHTML(link)}
         </div>
@@ -569,12 +785,15 @@
 
   function onCheckout(e) {
     e.preventDefault();
+    if (CFG.ordersPaused) { toast(CFG.ordersPaused.message); return; }
     const f = e.target;
     const rules = {
       first: v => v ? '' : 'Votre prénom, s’il vous plaît.',
       last: v => v ? '' : 'Votre nom, s’il vous plaît.',
-      phone: v => /^[+\d][\d\s.\-()]{7,}$/.test(v) ? '' : 'Un numéro valide pour vous joindre.',
-      email: v => !v || /^\S+@\S+\.\S+$/.test(v) ? '' : 'Adresse e-mail incomplète.'
+      phone: (v, form) => form.elements.mode.value === 'relais'
+        ? (/^(?:(?:\+|00)33[\s.\-]?|0)[67](?:[\s.\-]?\d{2}){4}$/.test(v) ? '' : 'Un numéro de mobile (06 ou 07) est nécessaire : Mondial Relay vous y envoie le message de retrait.')
+        : (/^[+\d][\d\s.\-()]{7,}$/.test(v) ? '' : 'Un numéro valide pour vous joindre.'),
+      email: v => (!v && payApi()) ? 'Votre e-mail, pour recevoir la confirmation et le suivi.' : (!v || /^\S+@\S+\.\S+$/.test(v) ? '' : 'Adresse e-mail incomplète.')
     };
     if (f.elements.relay) rules.relay = (v, form) => form.elements.mode.value === 'relais' && !relay ? 'Choisissez votre point relais ou locker sur la carte.' : '';
     if (!validate(f, rules)) return;
@@ -594,6 +813,12 @@
     s.onerror = () => { sumupSdk = null; reject(new Error('sdk')); };
     document.head.appendChild(s);
   }));
+  /* ce que le serveur de commandes reçoit : le panier (il recalcule tout), le mode de remise, et de quoi préparer le colis et écrire à la cliente
+     (prénom, nom, téléphone, e-mail, point relais choisi, petit mot). Aucune donnée de carte : elle est saisie chez SumUp. */
+  function checkoutBody(lines) {
+    const r = order.relay, relayBody = order.mode === 'relais' && r ? { id: r.id, code: r.code || '', name: r.name, street: r.streetName || '', house: r.houseNumber || '', postal: r.postal, city: r.city, country: r.country, type: r.type } : null;
+    return { ref: order.ref, lines, mode: order.mode, customer: { first: order.first, last: order.last, phone: order.phone, email: order.email }, relay: relayBody, note: order.note || '' };
+  }
   async function startCardPayment() {
     const api = payApi(), box = $('#payCard'), st = $('#payStatus'), btn = $('[data-pay-card]');
     if (!api || !box || !order || order.paid) return;
@@ -602,10 +827,10 @@
     box.hidden = false; btn.disabled = true; btn.setAttribute('aria-busy', 'true');
     try {
       say('Préparation du paiement sécurisé…');
-      const lines = order.lines.map(l => ({ pid: l.pid, model: l.model, size: l.size, colors: l.colors, finish: l.finish, qty: l.qty }));
-      const [, res] = await Promise.all([loadSumUp(), fetch(api + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref: order.ref, lines, mode: order.mode }) })]);
+      const lines = order.lines.map(l => l.article ? { pid: l.pid, qty: l.qty } : { pid: l.pid, model: l.model, size: l.size, colors: l.colors, finish: l.finish, qty: l.qty });
+      const [, res] = await Promise.all([loadSumUp(), fetch(api + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(checkoutBody(lines)) })]);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.checkoutId) throw new Error('serveur');
+      if (!res.ok || !data.checkoutId) { const e = new Error('serveur'); e.detail = res.status < 500 && typeof data.error === 'string' ? data.error : ''; throw e; }   /* message français du serveur pour les refus clairs (prix changé, mode retiré, pièce vendue...) */
       if (Math.abs(Number(data.amount) - order.total) > 0.005) throw new Error('montant');   /* le serveur recalcule le total : s'il diffère du panier affiché, on s'arrête */
       say('Saisissez votre carte : ' + money(order.total) + ' seront débités.');
       if (sumupCard && sumupCard.unmount) { try { sumupCard.unmount(); } catch (_) { /* déjà retiré */ } }
@@ -626,7 +851,7 @@
         }
       });
     } catch (err) {
-      fail(err && err.message === 'montant' ? 'Le montant a changé : rouvrez le panier et recommencez.' : 'Le paiement par carte est momentanément indisponible. Envoyez-moi le récapitulatif ci-dessus : je vous enverrai un lien de paiement SumUp.');
+      fail(err && err.message === 'montant' ? 'Le montant a changé : rouvrez le panier et recommencez.' : err && err.detail ? err.detail : 'Le paiement par carte est momentanément indisponible. Envoyez-moi le récapitulatif ci-dessus : je vous enverrai un lien de paiement SumUp.');
     }
   }
   function onPaid() {
@@ -655,7 +880,7 @@
       const line = e.target.closest('.oline');
       if (line) {
         const i = +line.dataset.i;
-        if (e.target.closest('[data-inc]')) cart[i].qty = Math.min(20, cart[i].qty + 1);
+        if (e.target.closest('[data-inc]')) cart[i].qty = Math.min(cart[i].max || 20, cart[i].qty + 1);
         else if (e.target.closest('[data-dec]')) cart[i].qty = Math.max(1, cart[i].qty - 1);
         else if (e.target.closest('[data-rm]')) cart.splice(i, 1);
         else return;
@@ -680,18 +905,24 @@
   const CUSTOM_PRODUCT = { 'Pochette d’ordinateur / iPad': 'pochette', 'Sac cabas': 'cabas', 'Sac personnalisé': 'sac', 'Panier (format sur mesure)': 'panier-rond', 'Chaîne de téléphone': 'cordon', 'Autre idée': 'sac' };
   function applyFinishRules() {
     const sel = $('#cFinish'), field = sel.closest('.field');
-    const pid = CUSTOM_PRODUCT[$('#cType').value];                       /* aucune pièce choisie pour l'instant : tout est proposé */
+    const type = $('#cType').value, pid = CUSTOM_PRODUCT[type];         /* aucune pièce choisie pour l'instant : tout est proposé (sauf les chaînes) */
     const allowed = pid ? finishIds(pid) : FINISHES.map(f => f.id);
     const idByName = Object.fromEntries(FINISHES.map(f => [f.name, f.id]));
-    [...sel.options].forEach(o => { const ok = allowed.includes(idByName[o.text]); o.hidden = !ok; o.disabled = !ok; });
-    if (sel.options[sel.selectedIndex].disabled) sel.selectedIndex = 0;  /* la finition choisie n'existe plus pour cette pièce : retour à « Sans détail » */
+    const bag = type === 'Sac personnalisé';                             /* la chaîne de 40 cm ne se propose que pour un sac (ni « Autre idée », ni aucun type choisi), et seulement si elle va avec les tons des coloris choisis */
+    [...sel.options].forEach(o => { const id = idByName[o.text], ok = allowed.includes(id) && (!isChain(id) || (bag && chainOk(id, custom.colors))); o.hidden = !ok; o.disabled = !ok; });
+    if (sel.options[sel.selectedIndex].disabled) sel.selectedIndex = 0;  /* la finition choisie n'existe plus pour cette pièce ou ces coloris : retour à « Sans détail » */
     field.hidden = !allowed.some(id => id !== 'aucune');
+    const note = $('#cChainNote');
+    if (note) {
+      const some = [...sel.options].some(o => !o.disabled && isChain(idByName[o.text]));
+      note.hidden = !bag; note.textContent = !bag ? '' : some ? 'Chaîne de 40 cm pour porter le sac à l’épaule. ' + (window.MPC_CHAIN_RULE || '') : 'Pas de chaîne avec un mélange de tons chauds et froids.';
+    }
     if (sel._rebuild) sel._rebuild();
   }
   let customViewer = null;
   function updateCustomViewer() {
     const type = CUSTOM_TYPES[$('#cType').value] || 'bag';
-    const fin = ({ 'Bordure dorée': 'dore', 'Bordure argentée': 'argente', 'Perles': 'perles', 'Coquillages & étoiles dorés': 'charms', 'Marguerites brodées': 'fleurs' })[$('#cFinish').value] || 'aucune';
+    const fin = ({ 'Bordure dorée': 'dore', 'Bordure argentée': 'argente', 'Perles': 'perles', 'Coquillages & étoiles dorés': 'charms', 'Marguerites brodées': 'fleurs', 'Chaîne dorée (40 cm)': 'chaine-doree', 'Chaîne argentée (40 cm)': 'chaine-argentee' })[$('#cFinish').value] || 'aucune';
     const c1 = custom.colors[0] || null, c2 = custom.colors[1] || null;
     if (customViewer) customViewer.setPiece(type, { c1, c2, assoc: custom.assoc, finish: fin });
     else {
@@ -700,7 +931,7 @@
       $('#customFallback').innerHTML = window.mpcPreview(svgType, { c1: c1 || 'beige', c2, model, finish: fin });
     }
     $('#customCaption').textContent = c1
-      ? custom.colors.map(c => COLOR[c].name).join(' + ') + (c2 ? ' · ' + ASSOC_LABEL[custom.assoc] : '')
+      ? custom.colors.map(c => COLOR[c].name).join(' + ') + (c2 ? ' · ' + ASSOC_LABEL[custom.assoc] : '') + (isChain(fin) ? ' · ' + $('#cFinish').value + ', non dessinée' : '')
       : 'Choisissez une couleur : la pièce se remplit du fil.';
   }
   function initCustomViewer() {
@@ -732,6 +963,7 @@
     $$('#customSwatches .swatch').forEach(b => b.setAttribute('aria-pressed', custom.colors.includes(b.dataset.c)));
     $('#customPicked').textContent = custom.colors.length ? 'Couleurs : ' + custom.colors.map(c => COLOR[c].name).join(' + ') : 'Aucune couleur choisie';
     $('#assocField').hidden = custom.colors.length < 2;
+    applyFinishRules();                                  /* une chaîne n'est proposée que si elle va avec les tons des coloris choisis */
     updateCustomViewer();
   }
   function goCustom(p, color) {
@@ -783,30 +1015,23 @@
   }
 
   /* ---------- Galerie & retours ---------- */
-  const I = 'assets/img/';
+  /* listes d'origine dans data.js (MPC_GALLERY_DEFAULT, MPC_REVIEWS_DEFAULT) ; celles d'Oriana (espace pro : MPC_GALLERY, MPC_REVIEWS) les remplacent dès qu'elle les a enregistrées */
   function renderGallery() {
-    const items = [
-      /* retirées à la demande de Justin (9 nov. 2026) : panier jaune, accessoires, panier marron à bordure dorée */
-      ['sac-bleu-gris', 'Sac bleu-gris sur bois', 720, 1280], ['atelier-creation-en-cours', 'Un panier blanc en cours de création', 719, 1280],
-      ['sac-rouge', 'Sac rouge et rose', 720, 1280], ['pause-cafe', 'Petit panier rose, pause café', 720, 1280], ['sac-beige-main', 'Sac beige, anse à la main', 720, 1280],
-      ['sac-blanc-bois', 'Sac blanc cassé', 720, 1280], ['marche', 'Le stand au marché nocturne', 720, 1280], ['paniers-duo-rose', 'Duo de paniers pour la table de salon', 720, 1280],
-      ['sac-noir-main', 'Sac noir, anse à la main', 720, 1280], ['panier-blanc-bois', 'Panier blanc sur rondelle de bois', 720, 1280], ['sac-rose-main', 'Sac rose porté à la main', 720, 1280],
-      ['sac-gris-main', 'Sac mélange gris et noir', 720, 1280]
-    ];
-    $('#gal').innerHTML = items.map(([n, c, w, h]) => `<figure class="gal__item" data-tilt><img src="${I + n}.jpg" alt="${esc(c)}" loading="lazy" width="${w}" height="${h}" decoding="async"><figcaption>${esc(c)}</figcaption></figure>`).join('');
+    const shown = window.MPC_GALLERY || window.MPC_GALLERY_DEFAULT || [];
+    $('#gal').innerHTML = shown.map(g => `<figure class="gal__item" data-tilt><img src="${esc(g.src)}" alt="${esc(g.caption)}" loading="lazy" width="720" height="1280" decoding="async"><figcaption>${esc(g.caption)}</figcaption></figure>`).join('');
   }
   function renderReviews() {
     const star = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.8L12 3.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-    const real = [['retour-porquerolles', 'Retour d’une cliente, en direct de Porquerolles'], ['retour-marseille', 'Sac personnalisé, à Marseille'], ['trio-sacs', 'Une grosse commande de sacs. Merci !']]
-      .map(([n, t]) => `<article class="rcard" role="listitem"><figure><img src="${I + n}.jpg" alt="${esc(t)}" loading="lazy" width="720" height="1280"></figure><p>${esc(t)}</p></article>`);
-    const empty = [1, 2, 3].map(() => `<article class="rcard rcard--empty" role="listitem" data-todo="avis-client"><div><div class="stars" aria-hidden="true">${star.repeat(5)}</div><b>Votre avis ici</b><span>Emplacement réservé à un avis client.</span></div></article>`);
+    const realList = (window.MPC_REVIEWS || window.MPC_REVIEWS_DEFAULT || []).map(r => [r.src, r.caption]);
+    const real = realList.map(([src, t]) => `<article class="rcard" role="listitem"><figure><img src="${esc(src)}" alt="${esc(t)}" loading="lazy" width="720" height="1280"></figure><p>${esc(t)}</p></article>`);
+    const empty = (window.MPC_REVIEWS ? [] : [1, 2, 3]).map(() => `<article class="rcard rcard--empty" role="listitem" data-todo="avis-client"><div><div class="stars" aria-hidden="true">${star.repeat(5)}</div><b>Votre avis ici</b><span>Emplacement réservé à un avis client.</span></div></article>`);
     $('#rev').innerHTML = real.concat(empty).join('');
   }
 
   /* ---------- Contact ---------- */
   function setupContact() {
     if (CFG.phone) { $('#coordPhone').hidden = false; const a = $('#phoneLink'); a.href = 'tel:' + CFG.phone.replace(/\s/g, ''); a.textContent = /^\d{10}$/.test(CFG.phone) ? CFG.phone.replace(/(\d{2})(?=\d)/g, '$1 ') : CFG.phone; }   /* 0650677950 s'affiche 06 50 67 79 50 */
-    if (CFG.email) { $('#coordMail').hidden = false; const a = $('#mailLink'); a.href = 'mailto:' + CFG.email; a.textContent = CFG.email; }
+    if (CFG.email) { $('#coordMail').hidden = false; const a = $('#mailLink'); a.href = 'mailto:' + CFG.email; a.textContent = CFG.email; const b = $('#mailBtn'); b.href = 'mailto:' + CFG.email; b.hidden = false; }   /* adresse sous le téléphone + bouton « M’écrire par e-mail » à côté de celui d'Instagram */
     $('#dmBtn').href = `https://ig.me/m/${CFG.instagram}`;
   }
 
@@ -820,9 +1045,9 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
   document.addEventListener('keydown', e => {
-    const modal = $('#modal'), drawer = $('#drawer');
-    if (e.key === 'Escape') { if (!modal.hidden) closeModal(); else if (!drawer.hidden) closeDrawer(); }
-    if (!modal.hidden) trapTab(e, $('#modalPanel')); else if (!drawer.hidden) trapTab(e, $('.drawer__panel'));
+    const modal = $('#modal'), drawer = $('#drawer'), am = $('#artModal'), amOpen = !!am && !am.hidden;
+    if (e.key === 'Escape') { if (amOpen) closeArticle(); else if (!modal.hidden) closeModal(); else if (!drawer.hidden) closeDrawer(); }
+    if (amOpen) trapTab(e, $('#artPanel')); else if (!modal.hidden) trapTab(e, $('#modalPanel')); else if (!drawer.hidden) trapTab(e, $('.drawer__panel'));
   });
 
   /* ---------- Listes déroulantes sur mesure (remplacent les <select> natifs, non stylables) ---------- */
@@ -904,13 +1129,20 @@
   }
 
   /* ---------- Init ---------- */
-  renderFilters(); renderGrid(); renderColorWall(); renderCustomSwatches(); renderGallery(); renderReviews(); setupContact();
-  $$('select').forEach(enhanceSelect);
-  initCustomViewer();
-  bindModal(); bindDrawer(); bindCustom(); refreshBadges();
-  $('#cartOpen').addEventListener('click', () => openDrawer('cart'));
-  $('#fab').addEventListener('click', () => openDrawer('cart'));
-  $('#sumupHelp').addEventListener('click', () => openDrawer('sumup'));
+  if (PAGE === 'stock') {                                          /* page en-stock.html : les pièces en stock, la fiche d'une pièce, le panier et la commande */
+    renderStockPage();
+    bindArticleModal(); bindDrawer(); refreshBadges();
+  } else {
+    renderFilters(); renderGrid(); renderArticles(); renderStockTeaser(); renderColorWall(); renderCustomSwatches(); renderGallery(); renderReviews(); setupContact();
+    $$('select').forEach(enhanceSelect);
+    initCustomViewer();
+    bindModal(); bindArticleModal(); bindDrawer(); bindCustom(); refreshBadges();
+  }
+  if (cartNote) setTimeout(() => toast(cartNote), 1400);
+  const onClick = (sel, fn) => { const el = $(sel); if (el) el.addEventListener('click', fn); };
+  onClick('#cartOpen', () => openDrawer('cart'));
+  onClick('#fab', () => openDrawer('cart'));
+  onClick('#sumupHelp', () => openDrawer('sumup'));
   $$('[data-ship-note]').forEach(el => { el.hidden = !shipBase; const f = $('[data-ship-fee]', el); if (f) f.textContent = money(shipBase); });   /* phrase « la livraison coûte… » de la page, alimentée par config.js */
   window.addEventListener('resize', refreshBadges);
 

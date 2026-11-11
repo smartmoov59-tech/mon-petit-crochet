@@ -60,7 +60,7 @@
     const street = (num && st ? (plain ? num + ' ' + st : st + ' ' + num) : st || num).slice(0, 140);
     const d = Number(sp.distance);
     return {
-      id, code: txt(sp.code, 40), name, street, postal, city, country: country.toUpperCase(), carrier: 'mondial_relay',
+      id, code: txt(sp.code, 40), name, street, streetName: st, houseNumber: num, postal, city, country: country.toUpperCase(), carrier: 'mondial_relay',   /* streetName et houseNumber : rue et numéro séparés, comme l'exige l'étiquette Mondial Relay */
       type: sp.general_shop_type === 'locker' ? 'locker' : 'relais',
       hours: hoursOf(sp), distance: Number.isFinite(d) && d >= 0 && d < 500000 ? Math.round(d) : null,
       postNumber: txt(post, 20)

@@ -38,22 +38,43 @@ window.MPC_FINISHES = [
   { id: 'argente',  name: 'Bordure argentée',       paid: true },
   { id: 'perles',   name: 'Perles',                 paid: true },
   { id: 'charms',   name: 'Coquillages & étoiles dorés', paid: true },
-  { id: 'fleurs',   name: 'Marguerites brodées',    paid: true }
+  { id: 'fleurs',   name: 'Marguerites brodées',    paid: true },
+  /* chaînes de 40 cm pour porter un sac à l'épaule plutôt qu'à la main (sacs seulement), proposées comme un détail (même supplément, une seule finition par pièce).
+     chain = famille de tons du coloris qui va avec : dorée avec les tons chauds, argentée avec les tons froids (voir MPC_TONES plus bas) */
+  { id: 'chaine-doree',    name: 'Chaîne dorée (40 cm)',    paid: true, chain: 'chaud' },
+  { id: 'chaine-argentee', name: 'Chaîne argentée (40 cm)', paid: true, chain: 'froid' }
 ];
 
 /* Quelles finitions pour quelle pièce (consigne de la gérante, 9 nov. 2026) :
    - bordure dorée ou argentée : seulement les paniers et les pochettes d'ordinateur (jamais les sacs) ;
    - pochette d'ordinateur : les bordures seulement ;
    - sac cabas et chaîne de téléphone : aucune finition, on ne choisit que les couleurs ;
-   - sac : perles, coquillages et étoiles, marguerites ; paniers : toutes les finitions.
+   - sac : perles, coquillages et étoiles, marguerites, et (11 nov. 2026) la chaîne dorée ou argentée de 40 cm pour le porter à l'épaule, selon les tons (MPC_TONES) ; paniers : toutes les finitions sauf les chaînes.
    Clé = identifiant du produit ; « aucune » = sans détail. Liste réduite à « aucune » = pas de choix de finition. */
 window.MPC_FINISH_RULES = {
-  'sac':          ['aucune', 'perles', 'charms', 'fleurs'],
+  'sac':          ['aucune', 'perles', 'charms', 'fleurs', 'chaine-doree', 'chaine-argentee'],
   'panier-rond':  ['aucune', 'dore', 'argente', 'perles', 'charms', 'fleurs'],
   'panier-ovale': ['aucune', 'dore', 'argente', 'perles', 'charms', 'fleurs'],
   'pochette':     ['aucune', 'dore', 'argente'],
   'cabas':        ['aucune'],
   'cordon':       ['aucune']
+};
+
+/* Tons des coloris : Oriana ne mélange pas les tons froids avec les tons chauds (consigne du 11 nov. 2026).
+   Sert aux chaînes de sac : la chaîne dorée va avec les tons chauds, l'argentée avec les tons froids ; les neutres (blanc, noir, vert feuille) vont avec les deux.
+   Un sac dont un coloris est chaud et l'autre froid n'a donc aucune chaîne. À corriger ICI si Oriana classe un coloris autrement ;
+   le même classement est dans paiement-serveur/commandes-worker.js (TONES), à garder identique. */
+window.MPC_TONES = {
+  chaud: ['beige', 'marron-clair', 'marron-fonce', 'vert-kaki', 'vert-olive', 'jaune', 'jaune-moutarde', 'orange', 'corail', 'rouge', 'rose-clair', 'rose-bonbon', 'rose-fuchsia', 'dore'],
+  froid: ['bleu-clair', 'bleu-ciel', 'bleu-lac', 'bleu-electrique', 'lavande', 'violet-parme', 'gris-clair', 'gris-fonce', 'argente']
+};
+window.MPC_CHAIN_RULE = 'Dorée avec les tons chauds, argentée avec les tons froids.';
+/* une finition est-elle permise avec ces coloris ? (vrai pour toute finition qui n'est pas une chaîne ; une chaîne n'accepte aucun coloris du ton opposé) */
+window.MPC_chainOk = function (finishId, colorIds) {
+  const f = (window.MPC_FINISHES || []).find(x => x.id === finishId);
+  if (!f || !f.chain) return true;
+  const opposite = window.MPC_TONES[f.chain === 'chaud' ? 'froid' : 'chaud'];
+  return !(colorIds || []).some(c => c && opposite.includes(c));
 };
 
 const P = 'assets/img/';
@@ -72,8 +93,8 @@ window.MPC_GEN.cordon = window.MPC_COLORS.map(c => c.id);
 /* Cadrage des vraies photos (publications Instagram) dans la carte carrée de la boutique : pos = point du cadre conservé (object-position), zoom = agrandissement.
    Réglé pour que les pièces tombent au même niveau d'une carte à l'autre. */
 window.MPC_FRAME = {
-  'panier-rond-presentation':  { pos: '50% 80%', zoom: 1.12 },
-  'panier-ovale-presentation': { pos: '50% 80%', zoom: 1 },
+  'panier-rond-presentation':  { pos: '55% 52%', zoom: 1.5 },    /* nouvelle photo (panier tenu en main, mur sable), 11 nov. 2026 */
+  'panier-ovale-presentation': { pos: '52% 56%', zoom: 1.25 },
   'pochette-presentation':     { pos: '50% 92%', zoom: 1 }
 };
 window.MPC_PRODUCTS = [
@@ -97,10 +118,10 @@ window.MPC_PRODUCTS = [
     id: 'panier-rond', type: 'basketRound', cat: 'paniers', name: 'Panier rond', badge: '',
     tagline: 'Panier de rangement, sur socle bois.',
     desc: 'Mon panier de rangement au crochet, monté sur un socle en bois. Deux tailles (S, M) et quatre modèles : simple, avec bordure dorée ou argentée, bicolore ou asymétrique.',
-    photo: P + 'panier-rond-presentation.jpg', photoAlt: 'Panier rond au crochet caramel, à la bordure dorée, posé sur un socle en bois clair',
-    gallery: ['panier-rond-presentation', 'panier-blanc-bois', 'panier-cadeau', 'atelier-creation-en-cours', 'paniers-duo-rose', 'pause-cafe'].map(n => P + n + '.jpg'),   /* que des paniers ronds (ou le duo rond + ovale) */   /* panier jaune et panier marron à bordure dorée retirés à la demande de Justin (9 nov. 2026) */
-    /* photo de présentation = la publication Instagram d'Oriana (1440 × 1920, taille d'origine), pour son coloris marron clair ; les autres coloris : photos recolorées */
-    photosByColor: Object.assign({}, genPhotos('paniers'), { 'marron-clair': 'panier-rond-presentation' }),
+    photo: P + 'panier-rond-presentation.jpg', photoAlt: 'Panier rond au crochet beige, tenu dans la main devant un mur couleur sable',
+    gallery: ['panier-rond-presentation', 'panier-rond-caramel-dore', 'panier-blanc-bois', 'panier-cadeau', 'atelier-creation-en-cours', 'paniers-duo-rose', 'pause-cafe'].map(n => P + n + '.jpg'),   /* que des paniers ronds (ou le duo rond + ovale) ; « panier-rond-caramel-dore » = l'ancienne photo de présentation */   /* panier jaune et panier marron à bordure dorée retirés à la demande de Justin (9 nov. 2026) */
+    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les autres coloris : photos recolorées (à refaire depuis cette photo, voir COMPTE-RENDU-SITE.md) */
+    photosByColor: Object.assign({}, genPhotos('paniers'), { 'beige': 'panier-rond-presentation' }),
     sizes: [
       { id: 'S', name: 'Taille S', price: 15, shape: [225, 225] },
       { id: 'M', name: 'Taille M', price: 25, shape: [280, 280] }
@@ -111,16 +132,16 @@ window.MPC_PRODUCTS = [
       { id: 'm3', name: 'Modèle 3 : bicolore', sub: 'double fil', colors: 2, labels: ['Couleur A', 'Couleur B'] },
       { id: 'm4', name: 'Modèle 4 : asymétrique', sub: 'haut / bas', colors: 2, labels: ['Haut', 'Bas'] }
     ],
-    defaultColors: ['marron-clair', 'blanc', 'jaune', 'beige', 'rose-clair', 'vert-olive', 'bleu-clair', 'gris-clair']
+    defaultColors: ['beige', 'marron-clair', 'blanc', 'jaune', 'rose-clair', 'vert-olive', 'bleu-clair', 'gris-clair']
   },
   {
     id: 'panier-ovale', type: 'basketOval', cat: 'paniers', name: 'Panier ovale', badge: '',
     tagline: 'Plus long, plus généreux.',
     desc: 'Le cousin ovale du panier rond, en trois tailles (S, M, L) : je le crochète pour une table de salon, une entrée ou une salle de bain.',
-    photo: P + 'panier-ovale-presentation.jpg', photoAlt: 'Panier ovale au crochet couleur rouille, posé sur un socle en bois clair',
-    gallery: ['panier-ovale-presentation', 'paniers-duo-rose'].map(n => P + n + '.jpg'),   /* « panier-cadeau » et « atelier-blanc » sont des paniers ronds : retirés des ovales */
-    /* photo de présentation = la publication Instagram d'Oriana (1371 × 1828, taille d'origine), pour son coloris marron clair ; les autres coloris : photos recolorées */
-    photosByColor: Object.assign({}, genPhotos('paniers'), { 'marron-clair': 'panier-ovale-presentation' }),
+    photo: P + 'panier-ovale-presentation.jpg', photoAlt: 'Panier ovale au crochet beige, tenu dans la main devant un mur couleur sable',
+    gallery: ['panier-ovale-presentation', 'panier-ovale-rouille', 'paniers-duo-rose'].map(n => P + n + '.jpg'),   /* « panier-cadeau » et « atelier-blanc » sont des paniers ronds : retirés des ovales ; « panier-ovale-rouille » = l'ancienne photo de présentation */
+    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les autres coloris : photos recolorées (à refaire depuis cette photo, voir COMPTE-RENDU-SITE.md) */
+    photosByColor: Object.assign({}, genPhotos('paniers'), { 'beige': 'panier-ovale-presentation' }),
     sizes: [
       { id: 'S', name: 'Taille S', price: 15, shape: [273, 188] },
       { id: 'M', name: 'Taille M', price: 25, shape: [356, 216] },
@@ -132,7 +153,7 @@ window.MPC_PRODUCTS = [
       { id: 'm3', name: 'Modèle 3 : bicolore', sub: 'double fil', colors: 2, labels: ['Couleur A', 'Couleur B'] },
       { id: 'm4', name: 'Modèle 4 : asymétrique', sub: 'haut / bas', colors: 2, labels: ['Haut', 'Bas'] }
     ],
-    defaultColors: ['marron-clair', 'rose-clair', 'beige', 'blanc', 'vert-olive', 'gris-fonce', 'bleu-lac', 'jaune']
+    defaultColors: ['beige', 'marron-clair', 'rose-clair', 'blanc', 'vert-olive', 'gris-fonce', 'bleu-lac', 'jaune']
   },
   {
     id: 'cordon', type: 'strap', cat: 'cordons', name: 'Chaîne de téléphone', badge: 'Nouveau',
@@ -169,6 +190,39 @@ window.MPC_PRODUCTS = [
     sizes: null, models: [], quoteType: 'Sac cabas',
     defaultColors: ['noir', 'beige', 'marron-clair', 'blanc', 'vert-olive', 'bleu-lac', 'rose-clair', 'orange']
   }
+];
+
+/* Galerie et retours clientes : listes d'origine. Oriana peut les remplacer depuis son espace pro (js/content.js, voir js/content-apply.js) ;
+   l'espace pro s'appuie aussi sur ces listes pour montrer ce qui est en ligne aujourd'hui. */
+window.MPC_GALLERY_DEFAULT = [
+  /* retirées à la demande de Justin (9 nov. 2026) : panier jaune, accessoires, panier marron à bordure dorée */
+  { src: 'assets/img/sac-bleu-gris.jpg', caption: 'Sac bleu-gris sur bois' },
+  { src: 'assets/img/galerie-panier-violet.jpg', caption: 'Panier rond violet sur rondelle de bois' },
+  { src: 'assets/img/galerie-pochette-kaki.jpg', caption: 'Pochette d’ordinateur kaki' },
+  { src: 'assets/img/atelier-creation-en-cours.jpg', caption: 'Un panier blanc en cours de création' },
+  { src: 'assets/img/sac-rouge.jpg', caption: 'Sac rouge et rose' },
+  { src: 'assets/img/galerie-panier-olive-peche.jpg', caption: 'Panier ovale vert olive et pêche' },
+  { src: 'assets/img/pause-cafe.jpg', caption: 'Petit panier rose, pause café' },
+  { src: 'assets/img/sac-beige-main.jpg', caption: 'Sac beige, anse à la main' },
+  { src: 'assets/img/galerie-pochette-gris.jpg', caption: 'Pochette d’ordinateur, mélange de gris' },
+  { src: 'assets/img/galerie-panier-bleu-degrade.jpg', caption: 'Panier rond en dégradé de bleus' },
+  { src: 'assets/img/sac-blanc-bois.jpg', caption: 'Sac blanc cassé' },
+  { src: 'assets/img/marche.jpg', caption: 'Le stand au marché nocturne' },
+  { src: 'assets/img/galerie-panier-kaki.jpg', caption: 'Panier ovale kaki' },
+  { src: 'assets/img/paniers-duo-rose.jpg', caption: 'Duo de paniers pour la table de salon' },
+  { src: 'assets/img/galerie-pochette-prune.jpg', caption: 'Pochette d’ordinateur couleur prune' },
+  { src: 'assets/img/sac-noir-main.jpg', caption: 'Sac noir, anse à la main' },
+  { src: 'assets/img/galerie-panier-gris-argente.jpg', caption: 'Panier gris à la bordure argentée' },
+  { src: 'assets/img/sac-rose-main.jpg', caption: 'Sac rose porté à la main' },
+  { src: 'assets/img/panier-blanc-bois.jpg', caption: 'Panier blanc sur rondelle de bois' },
+  { src: 'assets/img/galerie-pochette-noir-or.jpg', caption: 'Pochette d’ordinateur noire et fil doré' },
+  { src: 'assets/img/sac-gris-main.jpg', caption: 'Sac mélange gris et noir' },
+  { src: 'assets/img/galerie-panier-creme-taupe.jpg', caption: 'Panier rond blanc cassé et taupe' }
+];
+window.MPC_REVIEWS_DEFAULT = [
+  { src: 'assets/img/retour-porquerolles.jpg', caption: 'Retour d’une cliente, en direct de Porquerolles' },
+  { src: 'assets/img/retour-marseille.jpg', caption: 'Sac personnalisé, à Marseille' },
+  { src: 'assets/img/trio-sacs.jpg', caption: 'Une grosse commande de sacs. Merci !' }
 ];
 
 window.MPC_FILTERS = [

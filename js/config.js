@@ -4,9 +4,10 @@
 /* ==========================================================================
    À REMPLIR : les clés et les infos qui manquent (cherchez « ◄◄◄ » dans ce fichier)
    --------------------------------------------------------------------------
-   1. email                    : l'adresse e-mail d'Oriana (bouton « E-mail » du site et mentions légales).
-   2. sendcloud > publicKey    : la clé PUBLIQUE Sendcloud (livraison en point relais ou locker Mondial Relay).
-   3. sumup > checkoutEndpoint : PLUS TARD, l'adresse du mini-serveur de paiement par carte (une adresse, pas une clé).
+   1. email                    : FAIT (11 nov. 2026), l'adresse e-mail d'Oriana (rubrique « Nous trouver », bouton « Par e-mail » et mentions légales).
+   2. sendcloud > publicKey    : FAIT, la clé PUBLIQUE Sendcloud (livraison en point relais ou locker Mondial Relay).
+   3. sumup > checkoutEndpoint : FAIT (11 nov. 2026), l'adresse du serveur des commandes chez Cloudflare (une adresse, pas une clé). Le site lui demande s'il est prêt :
+                                 le paiement par carte dans le panier et les commandes automatiques s'activent TOUT SEULS dès que les clés sont posées chez Cloudflare (voir paiement-serveur/LISEZ-MOI.md).
    4. sumup > links            : facultatif, les liens de paiement SumUp (mode sans serveur).
 
    ⛔ CE FICHIER EST PUBLIC : il est publié avec le site, tout le monde peut le lire.
@@ -18,10 +19,11 @@
 window.MPC_CONFIG = {
   brand: 'Mon Petit Crochet by Oriana',
 
-  /* Contact d'Oriana : Instagram et téléphone (ajouté le 9 nov. 2026). L'e-mail reste à renseigner.
-     Renseignez email et/ou phone (format 0612345678) : les boutons SMS / e-mail apparaissent automatiquement. */
+  /* Contact d'Oriana : Instagram, téléphone (ajouté le 9 nov. 2026) et e-mail (ajouté le 11 nov. 2026).
+     Renseignez email et/ou phone (format 0612345678) : les boutons SMS / e-mail apparaissent automatiquement
+     (rubrique « Nous trouver », récapitulatif de commande, demande personnalisée, mentions légales). */
   instagram: 'mon_petit_crochet_by_oriana',
-  email: '',   /* ◄◄◄ À REMPLIR : l'e-mail d'Oriana, entre les deux apostrophes */
+  email: 'monpetitcrochetbyoriana@gmail.com',
   phone: '0650677950',
 
   /* ------------------------------------------------------------------
@@ -38,7 +40,13 @@ window.MPC_CONFIG = {
        checkoutEndpoint = adresse du mini-serveur une fois déployé, ex. 'https://mpc-sumup.xxxx.workers.dev'. Vide = mode liens ci-dessous.
        ⚠ Ce fichier est PUBLIC : n'y mettre AUCUNE clé API. La clé secrète SumUp va seulement dans les « secrets » du mini-serveur
        (voir paiement-serveur/LISEZ-MOI.md). Ici, uniquement l'adresse du serveur, qui n'est pas un secret. */
-    checkoutEndpoint: '',   /* ◄◄◄ PLUS TARD : l'ADRESSE du mini-serveur de paiement (pas une clé). Laisser vide pour l'instant. */
+    checkoutEndpoint: 'https://mpc-commandes.smartmoov59.workers.dev',   /* l'ADRESSE du serveur des commandes (Cloudflare Workers) : une adresse publique, pas une clé */
+    /* DÉTECTION AUTOMATIQUE : le site demande au serveur « êtes-vous prêt ? » (réponse oui/non). Tant que les clés (SumUp, Brevo...) ne sont pas posées chez Cloudflare,
+       la réponse est non et le site garde son fonctionnement habituel (récapitulatif + lien de paiement) ; dès qu'elles le sont, le paiement par carte dans le panier
+       et les commandes automatiques (e-mails, bordereau, suivi) s'activent tout seuls, sans rien changer ici. detect: false = pas de question au serveur : seul autoOrders décide. */
+    detect: true,
+    /* Réglage à la main, utilisé SEULEMENT si detect vaut false : true = commandes automatiques (le serveur de commandes doit alors être complètement réglé). */
+    autoOrders: false,
     links: {
       // "15": "https://pay.sumup.com/b2c/XXXXXXXX",
       // "25": "https://pay.sumup.com/b2c/XXXXXXXX",
@@ -59,7 +67,7 @@ window.MPC_CONFIG = {
     language: 'fr-fr'
   },
 
-  /* Supplément « détails décoratifs » (perles, coquillages, bordure dorée ou argentée, marguerites) */
+  /* Supplément « détails décoratifs » (perles, coquillages, bordure dorée ou argentée, marguerites, et la chaîne de sac de 40 cm : même supplément pour tous) */
   finishSurcharge: 3,
 
   /* FRAIS DE LIVRAISON : un montant fixe par commande, quel que soit le poids (décision du 10 nov. 2026 : 5 €).
@@ -67,7 +75,8 @@ window.MPC_CONFIG = {
      modes = modes de remise qui paient la livraison : seulement 'relais' (livraison en point relais ou locker Mondial Relay).
              La livraison à domicile n'est pas proposée. « En main propre » ('main') est gratuit ;
              « On voit ensemble » ('ensemble') ne paie rien en ligne (à convenir avec Oriana).
-     ⚠ Si vous changez ce montant ou cette liste, changez aussi SHIPPING_FEE et SHIPPING_MODES en haut de paiement-serveur/sumup-worker.js
-       (le serveur de paiement recalcule le total lui-même et refuserait un montant différent). */
+     Oriana peut changer ce montant (et les modes proposés) dans son espace pro : le site et le serveur des commandes suivent tout seuls.
+     ⚠ Pour changer la valeur d'ORIGINE ici, changez aussi SHIPPING_FEE en haut de paiement-serveur/commandes-worker.js
+       (le serveur recalcule le total lui-même et refuserait un montant différent). */
   shipping: { fee: 5, modes: ['relais'] }
 };

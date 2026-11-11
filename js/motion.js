@@ -70,20 +70,33 @@
   });
 
   /* ---------- Découpage du texte ---------- */
+  /* Les titres peuvent contenir des textes écrits par Oriana (espace pro) : on reconstruit des ÉLÉMENTS avec textContent, jamais du HTML écrit à la main,
+     pour qu'un texte contenant des chevrons ou des esperluettes reste un simple texte. */
+  const el_ = (cls, attrs) => { const e = document.createElement('span'); e.className = cls; if (attrs) e.setAttribute('aria-hidden', 'true'); return e; };
   function splitWords(el) {
     const text = el.textContent.trim().replace(/\s+/g, ' ');
     el.setAttribute('aria-label', text);
-    el.innerHTML = text.split(' ').map(w => `<span class="w" aria-hidden="true"><span>${w}</span></span>`).join(' ');
+    el.textContent = '';
+    text.split(' ').forEach((w, i) => {
+      if (i) el.appendChild(document.createTextNode(' '));
+      const outer = el_('w', true), inner = document.createElement('span'); inner.textContent = w; outer.appendChild(inner); el.appendChild(outer);
+    });
     return $$('.w > span', el);
   }
   function splitChars(el) {
     const text = el.textContent;
-    el.innerHTML = text.split(' ').map(w => `<span class="cw" aria-hidden="true" style="display:inline-block;white-space:nowrap">${[...w].map(c => `<span class="ch">${c}</span>`).join('')}</span>`).join(' ');
+    el.textContent = '';
+    text.split(' ').forEach((w, i) => {
+      if (i) el.appendChild(document.createTextNode(' '));
+      const cw = el_('cw', true); cw.style.display = 'inline-block'; cw.style.whiteSpace = 'nowrap';
+      [...w].forEach(c => { const ch = el_('ch'); ch.textContent = c; cw.appendChild(ch); });
+      el.appendChild(cw);
+    });
     return $$('.ch', el);
   }
   const heroChars = $$('[data-split="chars"]').flatMap(splitChars);
   const wordGroups = $$('[data-split="words"]').map(el => ({ el, words: splitWords(el) }));
-  $$('.footer__big span').forEach(s => { const t = s.textContent; s.innerHTML = `<b>${t}</b>`; });
+  $$('.footer__big span').forEach(s => { const t = s.textContent, b = document.createElement('b'); b.textContent = t; s.textContent = ''; s.appendChild(b); });
 
   /* ---------- État initial ---------- */
   gsap.set(heroChars, { yPercent: 115 });
