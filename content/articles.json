@@ -1,5 +1,20 @@
 [
   {
+    "id": "a-mwcr27y7-dp7",
+    "name": "greger",
+    "price": 0.5,
+    "kind": "dispo",
+    "desc": "",
+    "details": "",
+    "photos": [
+      "assets/uploads/202611/28d276abfbbe.jpg"
+    ],
+    "isNew": true,
+    "hidden": false,
+    "cat": "sacs",
+    "qty": 1
+  },
+  {
     "id": "a-mwcp0ye9-20j",
     "name": "gregzrthgzre",
     "price": 56,
