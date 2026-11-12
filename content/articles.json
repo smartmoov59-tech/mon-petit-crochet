@@ -1,35 +1,5 @@
 [
   {
-    "id": "a-mwcr27y7-dp7",
-    "name": "greger",
-    "price": 1,
-    "kind": "dispo",
-    "desc": "",
-    "details": "",
-    "photos": [
-      "assets/uploads/202611/28d276abfbbe.jpg"
-    ],
-    "isNew": true,
-    "hidden": false,
-    "cat": "sacs",
-    "qty": 1
-  },
-  {
-    "id": "a-mwcr3bmu-e89",
-    "name": "fzerfez",
-    "price": 0.5,
-    "kind": "dispo",
-    "desc": "",
-    "details": "",
-    "photos": [
-      "assets/uploads/202611/9bd1ed1c185e.jpg"
-    ],
-    "isNew": true,
-    "hidden": false,
-    "cat": "sacs",
-    "qty": 1
-  },
-  {
     "id": "a-mwcp0ye9-20j",
     "name": "gregzrthgzre",
     "price": 56,
@@ -44,21 +14,6 @@
     "cat": "paniers"
   },
   {
-    "id": "stock-chaine-bleu-electrique",
-    "name": "Chaîne de téléphone bleu électrique",
-    "price": 15,
-    "kind": "dispo",
-    "desc": "Chaîne de téléphone crochetée à la main en fil t-shirt, d’un bleu électrique franc. Elle se porte en bandoulière, avec sa pastille de fixation. Pièce unique.",
-    "details": "Bleu électrique · fil t-shirt",
-    "photos": [
-      "assets/img/stock/chaine-bleu-electrique.jpg"
-    ],
-    "isNew": false,
-    "hidden": false,
-    "cat": "cordons",
-    "qty": 1
-  },
-  {
     "id": "stock-panier-ovale-marron-l",
     "name": "Panier ovale marron, taille L",
     "price": 35,
@@ -67,21 +22,6 @@
     "details": "Marron · taille L · fond en bois",
     "photos": [
       "assets/img/stock/panier-ovale-marron.jpg"
-    ],
-    "isNew": false,
-    "hidden": false,
-    "cat": "paniers",
-    "qty": 1
-  },
-  {
-    "id": "stock-panier-ovale-rose",
-    "name": "Panier ovale rose",
-    "price": 15,
-    "kind": "dispo",
-    "desc": "Petit panier ovale crocheté à la main en fil t-shirt rose, monté sur un fond en bois. Pièce unique.",
-    "details": "Rose · fond en bois",
-    "photos": [
-      "assets/img/stock/panier-ovale-rose.jpg"
     ],
     "isNew": false,
     "hidden": false,
