@@ -80,16 +80,21 @@ window.MPC_chainOk = function (finishId, colorIds) {
 const P = 'assets/img/';
 /* Photos recolorées : assets/img/gen/<pièce>-<coloris>.jpg, uniquement si le fichier a été généré */
 window.MPC_GEN = window.MPC_GEN || {};
+/* séries dont la liste est écrite à la main, coloris par coloris, et ne cite que des photos qui existent : pour elles, « noPhoto » ne compte pas
+   (paniers rond et ovale : les 4 derniers coloris de la palette ont leur photo depuis le 12 nov. 2026) */
+window.MPC_GEN_HAND = ['panier-rond', 'panier-ovale'];
 function genPhotos(prefix) {
   const out = {};
-  window.MPC_COLORS.forEach(c => { if (!c.noPhoto && (window.MPC_GEN[prefix] || []).includes(c.id)) out[c.id] = 'gen/' + prefix + '-' + c.id; });   /* noPhoto : coloris sans photo recolorée (aperçu 3D à la place) */
+  const hand = window.MPC_GEN_HAND.includes(prefix);
+  window.MPC_COLORS.forEach(c => { if ((!c.noPhoto || hand) && (window.MPC_GEN[prefix] || []).includes(c.id)) out[c.id] = 'gen/' + prefix + '-' + c.id; });   /* noPhoto : coloris sans photo recolorée (aperçu 3D à la place), sauf séries écrites à la main (MPC_GEN_HAND) */
   return out;
 }
 window.MPC_GEN.sac = window.MPC_COLORS.map(c => c.id);
 window.MPC_GEN.paniers = window.MPC_COLORS.map(c => c.id);
-/* séries refaites le 11 nov. 2026 à partir des deux photos de présentation (Higgsfield, Nano Banana Pro, mode Unlimited) : 21 coloris chacune (beige = la photo d'Oriana elle-même) ; l'ancienne série « paniers » ne sert plus que de secours */
-window.MPC_GEN['panier-rond'] = ['blanc', 'gris-clair', 'gris-fonce', 'noir', 'marron-clair', 'marron-fonce', 'vert-kaki', 'vert-olive', 'bleu-clair', 'bleu-ciel', 'bleu-lac', 'bleu-electrique', 'lavande', 'rose-clair', 'rose-bonbon', 'rose-fuchsia', 'corail', 'orange', 'jaune', 'argente', 'dore'];
-window.MPC_GEN['panier-ovale'] = ['blanc', 'gris-clair', 'gris-fonce', 'noir', 'marron-clair', 'marron-fonce', 'vert-kaki', 'vert-olive', 'bleu-clair', 'bleu-ciel', 'bleu-lac', 'bleu-electrique', 'lavande', 'rose-clair', 'rose-bonbon', 'rose-fuchsia', 'corail', 'orange', 'jaune', 'argente', 'dore'];
+/* séries refaites le 11 nov. 2026 à partir des deux photos de présentation (Higgsfield, Nano Banana Pro, mode Unlimited) : 21 coloris chacune (beige = la photo d'Oriana elle-même) ; l'ancienne série « paniers » ne sert plus que de secours.
+   12 nov. 2026 : + rouge, violet parme, jaune moutarde, vert feuille (même méthode, mode Unlimited, aucun crédit) = 25 coloris chacune + beige = toute la palette */
+window.MPC_GEN['panier-rond'] = ['blanc', 'gris-clair', 'gris-fonce', 'noir', 'marron-clair', 'marron-fonce', 'vert-kaki', 'vert-olive', 'bleu-clair', 'bleu-ciel', 'bleu-lac', 'bleu-electrique', 'lavande', 'rose-clair', 'rose-bonbon', 'rose-fuchsia', 'corail', 'orange', 'jaune', 'argente', 'dore', 'rouge', 'violet-parme', 'jaune-moutarde', 'vert-feuille'];
+window.MPC_GEN['panier-ovale'] = ['blanc', 'gris-clair', 'gris-fonce', 'noir', 'marron-clair', 'marron-fonce', 'vert-kaki', 'vert-olive', 'bleu-clair', 'bleu-ciel', 'bleu-lac', 'bleu-electrique', 'lavande', 'rose-clair', 'rose-bonbon', 'rose-fuchsia', 'corail', 'orange', 'jaune', 'argente', 'dore', 'rouge', 'violet-parme', 'jaune-moutarde', 'vert-feuille'];
 window.MPC_GEN.cabas = window.MPC_COLORS.map(c => c.id);
 window.MPC_GEN.pochette = window.MPC_COLORS.map(c => c.id);
 window.MPC_GEN.cordon = window.MPC_COLORS.map(c => c.id);
@@ -123,8 +128,8 @@ window.MPC_PRODUCTS = [
     desc: 'Mon panier de rangement au crochet, monté sur un socle en bois. Deux tailles (S, M) et quatre modèles : simple, avec bordure dorée ou argentée, bicolore ou asymétrique.',
     photo: P + 'panier-rond-presentation.jpg', photoAlt: 'Panier rond au crochet beige, tenu dans la main devant un mur couleur sable',
     gallery: ['panier-rond-presentation', 'panier-rond-caramel-dore', 'panier-blanc-bois', 'panier-cadeau', 'atelier-creation-en-cours', 'paniers-duo-rose'].map(n => P + n + '.jpg'),   /* que des paniers ronds (ou le duo rond + ovale) ; « panier-rond-caramel-dore » = l'ancienne photo de présentation */   /* panier jaune et panier marron à bordure dorée retirés à la demande de Justin (9 nov. 2026) ; « pause café » retirée à sa demande (11 nov. 2026) */
-    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les 21 autres coloris : photos recolorées depuis cette photo (assets/img/gen/panier-rond-<coloris>.jpg, 960 × 960, refaites le 11 nov. 2026) ; l'ancienne série « paniers » ne sert plus que de secours */
-    photosByColor: Object.assign({}, genPhotos('paniers'), { 'beige': 'panier-rond-presentation' }),
+    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les 25 autres coloris : photos recolorées depuis cette photo (assets/img/gen/panier-rond-<coloris>.jpg, 960 × 960, refaites le 11 nov. 2026 ; rouge, violet parme, jaune moutarde et vert feuille ajoutés le 12 nov. 2026) ; l'ancienne série « paniers » ne sert plus que de secours */
+    photosByColor: Object.assign({}, Object.assign({}, genPhotos('paniers'), genPhotos('panier-rond')), { 'beige': 'panier-rond-presentation' }),
     sizes: [
       { id: 'S', name: 'Taille S', price: 15, shape: [225, 225] },
       { id: 'M', name: 'Taille M', price: 25, shape: [280, 280] }
@@ -143,8 +148,8 @@ window.MPC_PRODUCTS = [
     desc: 'Le cousin ovale du panier rond, en trois tailles (S, M, L) : je le crochète pour une table de salon, une entrée ou une salle de bain.',
     photo: P + 'panier-ovale-presentation.jpg', photoAlt: 'Panier ovale au crochet beige, tenu dans la main devant un mur couleur sable',
     gallery: ['panier-ovale-presentation', 'panier-ovale-rouille', 'paniers-duo-rose'].map(n => P + n + '.jpg'),   /* « panier-cadeau » et « atelier-blanc » sont des paniers ronds : retirés des ovales ; « panier-ovale-rouille » = l'ancienne photo de présentation */
-    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les 21 autres coloris : photos recolorées depuis cette photo (assets/img/gen/panier-ovale-<coloris>.jpg, 960 × 960, refaites le 11 nov. 2026) ; l'ancienne série « paniers » ne sert plus que de secours */
-    photosByColor: Object.assign({}, genPhotos('paniers'), { 'beige': 'panier-ovale-presentation' }),
+    /* photo de présentation = la photo d'Oriana (panier tenu en main, 1235 × 1274, fournie le 11 nov. 2026) pour son coloris beige ; les 25 autres coloris : photos recolorées depuis cette photo (assets/img/gen/panier-ovale-<coloris>.jpg, 960 × 960, refaites le 11 nov. 2026 ; rouge, violet parme, jaune moutarde et vert feuille ajoutés le 12 nov. 2026) ; l'ancienne série « paniers » ne sert plus que de secours */
+    photosByColor: Object.assign({}, Object.assign({}, genPhotos('paniers'), genPhotos('panier-ovale')), { 'beige': 'panier-ovale-presentation' }),
     sizes: [
       { id: 'S', name: 'Taille S', price: 15, shape: [273, 188] },
       { id: 'M', name: 'Taille M', price: 25, shape: [356, 216] },
