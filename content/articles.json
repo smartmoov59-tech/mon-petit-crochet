@@ -14,6 +14,21 @@
     "cat": "paniers"
   },
   {
+    "id": "stock-chaine-bleu-electrique",
+    "name": "Chaîne de téléphone bleu électrique",
+    "price": 15,
+    "kind": "dispo",
+    "desc": "Chaîne de téléphone crochetée à la main en fil t-shirt, d’un bleu électrique franc. Elle se porte en bandoulière, avec sa pastille de fixation. Pièce unique.",
+    "details": "Bleu électrique · fil t-shirt",
+    "photos": [
+      "assets/img/stock/chaine-bleu-electrique.jpg"
+    ],
+    "isNew": false,
+    "hidden": false,
+    "cat": "cordons",
+    "qty": 1
+  },
+  {
     "id": "stock-panier-ovale-marron-l",
     "name": "Panier ovale marron, taille L",
     "price": 35,
@@ -22,6 +37,21 @@
     "details": "Marron · taille L · fond en bois",
     "photos": [
       "assets/img/stock/panier-ovale-marron.jpg"
+    ],
+    "isNew": false,
+    "hidden": false,
+    "cat": "paniers",
+    "qty": 1
+  },
+  {
+    "id": "stock-panier-ovale-rose",
+    "name": "Panier ovale rose",
+    "price": 15,
+    "kind": "dispo",
+    "desc": "Petit panier ovale crocheté à la main en fil t-shirt rose, monté sur un fond en bois. Pièce unique.",
+    "details": "Rose · fond en bois",
+    "photos": [
+      "assets/img/stock/panier-ovale-rose.jpg"
     ],
     "isNew": false,
     "hidden": false,
