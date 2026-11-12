@@ -1,19 +1,5 @@
 [
   {
-    "id": "a-mwcp0ye9-20j",
-    "name": "gregzrthgzre",
-    "price": 56,
-    "kind": "commande",
-    "desc": "tregergrezhreh",
-    "details": "herheaheaherahrea",
-    "photos": [
-      "assets/uploads/202611/a997242f811a.jpg"
-    ],
-    "isNew": true,
-    "hidden": false,
-    "cat": "paniers"
-  },
-  {
     "id": "stock-chaine-bleu-electrique",
     "name": "Chaîne de téléphone bleu électrique",
     "price": 15,
